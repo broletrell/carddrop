@@ -1,6 +1,6 @@
 # Card Drop — status (read this first)
 
-**Last updated:** 2026-11-08, session 3. LIVE **v2.0.0** (dark navy redesign on top of v1.9.x; not phone-tested by owner yet). Older detail: `handoffs/` (grep, don't read whole).
+**Last updated:** 2026-11-08, session 3. LIVE **v2.1.0** (dark navy redesign on top of v1.9.x; not phone-tested by owner yet). Older detail: `handoffs/` (grep, don't read whole).
 
 ## Basics
 - Phone PWA to mark houses where detailing business cards were left. Owner (Trell, thedetailboyz916) uses iPhone,
@@ -8,7 +8,7 @@
 - Folder `/Users/rtb/untitled folder/carddrop`: one `index.html` (vanilla JS, MapLibre 5.6.1), `sw.js`, `version.json`.
   Data only in phone localStorage (`carddrop.v1` houses, `carddrop.settings.v1`). Houses: {id,lat,lng,status
   left|talked|booked|skip, addr,num,street,city,notes,amount,created,updated,history[{s,t}]}.
-- Release: bump `APP_VERSION` (index.html) + `version.json` (same) + `CACHE` in sw.js (now carddrop-v17), commit,
+- Release: bump `APP_VERSION` (index.html) + `version.json` (same) + `CACHE` in sw.js (now carddrop-v19), commit,
   push (Mac's saved GitHub credential, never print it), poll `curl .../version.json?x=$RANDOM` until new. Phone shows
   green Update banner (or close app fully + reopen).
 
@@ -51,7 +51,9 @@
   - Business Overview: total revenue / clients / avg ticket, cards vs other-jobs bar, "Add job" (source chips). Tap a log row to delete (undo).
   - Expected clients (`expected(days)`, 7/14/30 toggle, "i" sheet explains): baseline 2% (BASE_RATE) worth 150 virtual cards
     (PRIOR_CARDS), blended with own bookings ÷ time-weighted cards; timing F(d)=1−e^(−d/10) (~50% wk1, 75% d14, 95% d30);
-    80% range. Research (2026-11-08): home-service cards/door hangers ~1–4%, 2–3% typical; most calls week 1, long tail.
+    80% range. v2.1: two groups — cards only (2%, prior 150) and talked-to (TALK_RATE 10%, prior 30), each blended with own
+    results (`grp`); expected revenue = clients × `avgTicket()` (own booked/job prices, else settings.avgJob default $150,
+    editable). Also shows total remaining potential of all open cards. Research (2026-11-08): home-service cards/door hangers ~1–4%, 2–3% typical; most calls week 1, long tail.
     Sources: 4over4.com/statistics/door-hanger-advertising-effectiveness-data, doorhangerswork.com/understanding-door-hanger-response-rates/,
     dma.org.uk door-drop article (~4% avg UK), community.windowcleaner.com thread 40700 (≈2 jobs per 75 hangers). Most
     figures come from printers → we use the middle, not the 6–12% claims.
