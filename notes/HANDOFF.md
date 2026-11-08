@@ -1,6 +1,6 @@
 # Card Drop — status (read this first)
 
-**Last updated:** 2026-11-08, session 3. LIVE **v1.9.1** (Stats page + multi-select; not phone-tested by owner yet). Older detail: `handoffs/` (grep, don't read whole).
+**Last updated:** 2026-11-08, session 3. LIVE **v1.9.2** (Stats page, multi-select, faster start + steadier GPS; not phone-tested by owner yet). Older detail: `handoffs/` (grep, don't read whole).
 
 ## Basics
 - Phone PWA to mark houses where detailing business cards were left. Owner (Trell, thedetailboyz916) uses iPhone,
@@ -8,7 +8,7 @@
 - Folder `/Users/rtb/untitled folder/carddrop`: one `index.html` (vanilla JS, MapLibre 5.6.1), `sw.js`, `version.json`.
   Data only in phone localStorage (`carddrop.v1` houses, `carddrop.settings.v1`). Houses: {id,lat,lng,status
   left|talked|booked|skip, addr,num,street,city,notes,amount,created,updated,history[{s,t}]}.
-- Release: bump `APP_VERSION` (index.html) + `version.json` (same) + `CACHE` in sw.js (now carddrop-v15), commit,
+- Release: bump `APP_VERSION` (index.html) + `version.json` (same) + `CACHE` in sw.js (now carddrop-v16), commit,
   push (Mac's saved GitHub credential, never print it), poll `curl .../version.json?x=$RANDOM` until new. Phone shows
   green Update banner (or close app fully + reopen).
 
@@ -52,6 +52,14 @@
     Sources: 4over4.com/statistics/door-hanger-advertising-effectiveness-data, doorhangerswork.com/understanding-door-hanger-response-rates/,
     dma.org.uk door-drop article (~4% avg UK), community.windowcleaner.com thread 40700 (≈2 jobs per 75 hangers). Most
     figures come from printers → we use the middle, not the 6–12% claims.
+- **Fast start (v1.9.2):** sw.js serves app page + /planet from cache instantly and refreshes in background
+  (`fastThenRefresh`; Update banner still clears + reloads). Overture range pieces cached as 200 under
+  `url?bytes=<range>` and replayed as 206 with saved Content-Range/ETag (pmtiles accepts). pmtiles.js loaded as a normal
+  <script> so `ovReady` is true before the first `setLayer` → map built once, not twice. Built-in preview browser won't
+  run service workers; SW was tested with a node mock (scratchpad), not on iPhone.
+- **GPS (v1.9.2):** quick rough `getCurrentPosition` first, then watchPosition; `smoothFix` = simple Kalman (weights by
+  accuracy, faster when moving) so rough/outlier fixes can't yank the dot; first zoom-in waits ≤4 s for a ≤60 m fix;
+  faint accuracy ring (`#meAcc`) when rough; one-time toast if fixes stay >500 m (iPhone Precise Location off).
 - Location dot + compass cone, street progress chip, nearby-done warning, undo, onboarding, offline SW.
 
 ## Problems hit + fixes (don't repeat)
