@@ -1,6 +1,6 @@
 # Card Drop — status (read this first)
 
-**Last updated:** 2026-11-08, session 3. LIVE **v1.9.2** (Stats page, multi-select, faster start + steadier GPS; not phone-tested by owner yet). Older detail: `handoffs/` (grep, don't read whole).
+**Last updated:** 2026-11-08, session 3. LIVE **v2.0.0** (dark navy redesign on top of v1.9.x; not phone-tested by owner yet). Older detail: `handoffs/` (grep, don't read whole).
 
 ## Basics
 - Phone PWA to mark houses where detailing business cards were left. Owner (Trell, thedetailboyz916) uses iPhone,
@@ -8,7 +8,7 @@
 - Folder `/Users/rtb/untitled folder/carddrop`: one `index.html` (vanilla JS, MapLibre 5.6.1), `sw.js`, `version.json`.
   Data only in phone localStorage (`carddrop.v1` houses, `carddrop.settings.v1`). Houses: {id,lat,lng,status
   left|talked|booked|skip, addr,num,street,city,notes,amount,created,updated,history[{s,t}]}.
-- Release: bump `APP_VERSION` (index.html) + `version.json` (same) + `CACHE` in sw.js (now carddrop-v16), commit,
+- Release: bump `APP_VERSION` (index.html) + `version.json` (same) + `CACHE` in sw.js (now carddrop-v17), commit,
   push (Mac's saved GitHub credential, never print it), poll `curl .../version.json?x=$RANDOM` until new. Phone shows
   green Update banner (or close app fully + reopen).
 
@@ -29,7 +29,10 @@
   de-duped 8 m grid, shown from zoom 14 (`AVAIL_Z`). Marked houses = `cd-done` circle layer colored by status
   (Card left blue, Talked amber, Booked purple #9333ea, Skip gray), min size city-wide. Tap → bottom sheet.
 - Map page = map only + small legend pill top-left (`#mLegend`). Old top stats bar removed (`--tbH` fixed 30px).
-- Tab bar is deep navy (#0b1226) on every page (owner asked).
+- **v2.0 look:** whole app is dark navy. One theme block at the END of <style> ("app theme v2") redefines tokens
+  (--bg #0a0f1c, --panel #121829, --raise #1a2135, --ink light, --brandg gradient) and restyles header (frosted large title),
+  tab bar (frosted, blue pill on active), lists/cards, inputs, sheets, dialogs, map overlays (navy glass). Older rules above
+  it are partly overridden — edit the theme block for look changes. Don't use var(--ink) as a background (it's light now).
 - **Multi-select (v1.9.1)**: check-circle button in map side buttons → select mode (`selecting`, `picks` Map declared near
   top with `ovReady` — keep it there, withOverlay reads it at startup). "Tap to pick" / "Swipe to pick" (swipe disables
   dragPan; starting a swipe on a picked house un-picks). Picks shown as white dot + blue ring (`cd-pick` layer). Bottom
