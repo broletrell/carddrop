@@ -100,8 +100,8 @@ body{position:relative}
 @keyframes pop{0%{transform:scale(0)}100%{transform:scale(1)}}
 .me-wrap{position:relative;width:90px;height:90px;pointer-events:none}
 .me-wrap>*{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
-.me-pulse{width:22px;height:22px;border-radius:50%;background:rgba(37,99,235,.35);animation:mepulse 2s ease-out infinite}
-@keyframes mepulse{0%{width:22px;height:22px;opacity:.9}100%{width:80px;height:80px;opacity:0}}
+.me-pulse{width:80px;height:80px;border-radius:50%;background:rgba(37,99,235,.35);animation:mepulse 2s ease-out infinite;will-change:transform,opacity}
+@keyframes mepulse{0%{transform:translate(-50%,-50%) scale(.275);opacity:.9}100%{transform:translate(-50%,-50%) scale(1);opacity:0}}
 .me-cone{width:90px;height:90px;transform-origin:50% 50%;transform:translate(-50%,-50%) rotate(var(--hd,0deg));opacity:0;transition:opacity .3s}
 .me-cone.on{opacity:1}
 .street{position:absolute;left:12px;top:calc(var(--sat) + var(--tbH,66px) + 18px);z-index:505;background:rgba(255,255,255,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:14px;padding:9px 12px;min-width:190px;max-width:70vw;box-shadow:0 6px 18px rgba(15,23,42,.16),0 0 0 .5px rgba(15,23,42,.1);animation:drop .25s ease}
@@ -522,7 +522,8 @@ function withOverlay(st){
   return st;
 }
 let lastAvailFC=null,selFC=null,availPts=[];
-map.on("style.load",()=>setTimeout(refreshAvail,300));map.on("idle",()=>{if(!availOnce){availOnce=true;refreshAvail()}});let availOnce=false;
+map.on("style.load",()=>setTimeout(refreshAvail,300));let availOnce=false,idleTries=0;map.on("movestart",()=>{idleTries=0});
+map.on("idle",()=>{if(!availOnce||(!availPts.length&&map.getZoom()>=AVAIL_Z&&idleTries<3)){availOnce=true;idleTries++;refreshAvail()}});
 let availT=null;
 map.on("sourcedata",e=>{if(e.sourceId==="cdomt"&&e.isSourceLoaded){clearTimeout(availT);availT=setTimeout(refreshAvail,150)}});
 const KX=lat=>111320*Math.cos(lat*Math.PI/180),KY=110540;
@@ -965,7 +966,7 @@ setInterval(()=>{checkNear();if(curTab==="list")renderList()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderAll()}});
 
 /* ---------- offline + updates ---------- */
-const APP_VERSION="1.7.1";
+const APP_VERSION="1.7.2";
 $("#verLbl").textContent="Version "+APP_VERSION;
 let swReg=null;
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").then(r=>swReg=r).catch(()=>{});

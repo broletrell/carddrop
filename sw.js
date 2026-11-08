@@ -1,5 +1,5 @@
 // Card Drop offline support: app files load even with no signal.
-const CACHE = "carddrop-v9";
+const CACHE = "carddrop-v10";
 const TILES = "carddrop-tiles"; // kept across app updates
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png",
   "https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css", "https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js"];

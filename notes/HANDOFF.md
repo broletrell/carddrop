@@ -1,9 +1,9 @@
 # Card Drop — status
 
-**Last updated:** 2026-11-07 (session 2, v1.7 live)
+**Last updated:** 2026-11-07 (session 2, v1.7.1 live)
 
 ## Status
-- LIVE v1.7 at https://broletrell.github.io/carddrop/ (public repo broletrell/carddrop, GitHub Pages on main).
+- LIVE v1.7.1 at https://broletrell.github.io/carddrop/ (public repo broletrell/carddrop, GitHub Pages on main).
   Owner installed it on iPhone via Add to Home Screen; it works.
 - Local folder: `/Users/rtb/untitled folder/carddrop` (git, remote origin set). Push uses the Mac's saved
   GitHub credential (`git credential fill`, scope repo) — never print it.
@@ -43,6 +43,9 @@
   throttled, `/planet` + styles network-first; night side streets brighter/wider at mid zoom, buildings from z13.
 - Preview gotcha: when the preview pane is hidden, requestAnimationFrame stalls and the map never loads.
   For testing, override rAF with setTimeout in the page.
+
+- v1.7.1: fixed startup crash (old bug from v1.6) when saved map style = Auto: `resolveLayer` read `me`
+  before its `let` line. `me` is now declared above the map section. Showed as an all-blue screen on phone.
 
 ## NEXT
 - Owner to test v1.7 on phone (load speed on Auto, $ box, stats bar fit, compass still untested).
