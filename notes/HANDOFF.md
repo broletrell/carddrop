@@ -1,5 +1,5 @@
 # Card Drop — status (read this first)
-**Updated:** 2026-11-08 session 4. LIVE **v2.2.9**. Full record: `HISTORY.md` (grep only). Old handoffs: `handoffs/`.
+**Updated:** 2026-11-08 session 4. LIVE **v2.3.0**. Full record: `HISTORY.md` (grep only). Old handoffs: `handoffs/`.
 
 ## Basics
 - Phone PWA for Trell's detailing business: mark houses where cards were left. Owner on iPhone. LIVE
@@ -7,7 +7,7 @@
 - One `index.html` (vanilla JS, MapLibre 5.6.1, pmtiles 3.2.1), `sw.js`, `version.json`. Data: `carddrop.v1` houses,
   `carddrop.biz.v1` {buys,jobs}, `carddrop.settings.v1` (per phone), `carddrop.sync.v1` (shared-map state).
 - Sync server: `../carddrop-sync/` (Worker `carddrop-sync` + D1 `carddrop-sync`, local git only). README there.
-- Release: bump `APP_VERSION` + `version.json` + `CACHE` in sw.js (now carddrop-v29), commit, push, poll version.json.
+- Release: bump `APP_VERSION` + `version.json` + `CACHE` in sw.js (now carddrop-v30), commit, push, poll version.json.
 - Look: dark navy theme = "app theme v2" block at END of <style>. Never use var(--ink) as a background.
 
 ## Testing
@@ -79,6 +79,13 @@
 - Now R=(0.35·acc)², q=max(3, 2·speed), and 2 fixes in a row outside their error circle → snap (k≥.85, reset v).
   Node sim (acc 50, no speed): lag 28–38 m → ~7 m; standing jitter ~2 m; 150 m outlier → 0.5 m; 70 m stale → 5 m in 3 fixes.
 - Facing beam confirmed working on owner's phone (screenshot).
+
+## Session 4k (v2.3.0) — owner's dot stopped updating (partner's fine)
+- Filter now uses arrival time (Date.now), not p.timestamp; removed `t<kf.t` reject (one odd timestamp froze the dot forever).
+  Readings the phone stamps >20 s old are skipped. Quick getCurrentPosition fix only used if no fix yet.
+- restartGPS() on every return to the app + watchdog: no fix for 15 s while open → restart watch.
+- Tested with fake GPS in _test.html (override navigator.geolocation before document.write): future timestamp → keeps moving;
+  GPS silent → restarted after ~16 s, fixes resume.
 
 ## Open / unverified
 - Nothing phone-tested by owner yet (multi-select, fast start, shared map, marker). Test teams deleted from D1 (0 teams).

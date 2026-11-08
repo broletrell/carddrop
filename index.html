@@ -928,9 +928,15 @@ function startGPS(){
   if(!("geolocation" in navigator)){toast("This phone can't share location");return}
   if(watchId!=null)return;gpsStart=Date.now();
   // quick rough fix first (shows you right away), then sharp GPS fixes take over
-  try{navigator.geolocation.getCurrentPosition(onPos,()=>{},{enableHighAccuracy:false,maximumAge:120000,timeout:4000})}catch(e){}
+  try{navigator.geolocation.getCurrentPosition(p=>{if(!me)onPos(p)},()=>{},{enableHighAccuracy:false,maximumAge:120000,timeout:4000})}catch(e){} // only if nothing better yet
   watchId=navigator.geolocation.watchPosition(onPos,onPosErr,{enableHighAccuracy:true,maximumAge:1000,timeout:20000});
 }
+// iPhone can pause location when the screen locks or you switch apps and not resume it: restart it when you come back,
+// and if no reading has come in for 15 s while the app is open
+let lastFixAt=0;
+function restartGPS(){if(watchId==null)return;try{navigator.geolocation.clearWatch(watchId)}catch(e){}watchId=null;startGPS()}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)restartGPS()});
+setInterval(()=>{if(watchId!=null&&!document.hidden&&Date.now()-Math.max(lastFixAt,gpsStart)>15000)restartGPS()},5000);
 /* smooth GPS: each fix is weighted by how sure the phone is (its accuracy), so one rough reading
    can't yank the dot away and standing still doesn't wobble. Moving lets new fixes win faster. */
 let kf=null,gpsStart=0,badFixes=0,preciseTold=false;
@@ -944,7 +950,6 @@ function smoothFix(c,t){
   // iPhone already smooths its GPS and its "accuracy" is cautious, so trust readings more than the number says
   const acc=Math.max(3,c.accuracy||50),R=Math.max(4,(acc*0.35)**2);
   if(!kf||t-kf.t>90000){kf={lat:c.latitude,lng:c.longitude,v:R,t,far:0};return}
-  if(t<kf.t)return; // old cached fix arriving late
   const dt=Math.max(0,(t-kf.t)/1000),spd=c.speed>0?c.speed:0,q=Math.max(3,spd*2); // q: room for walking even when the phone reports no speed
   // walking/driving: move the estimate forward along the GPS course first, so the dot doesn't trail behind you
   if(spd>0.6&&c.heading!=null&&!isNaN(c.heading)&&dt<5){const r=c.heading*Math.PI/180,m=spd*dt;
@@ -960,7 +965,9 @@ function drawAcc(){const el=document.getElementById("meAcc");if(!el||!me)return;
   el.style.width=el.style.height=d+"px";el.style.opacity=me.acc>12&&d>26?1:0}
 map.on("zoom",drawAcc);
 function onPos(p){
-  const c=p.coords;smoothFix(c,p.timestamp||Date.now());
+  // use arrival time, not the phone's timestamp (one odd timestamp used to freeze the dot); skip readings the phone says are old
+  const now=Date.now(),ts=p.timestamp;if(kf&&ts&&Math.abs(now-ts)<864e5&&now-ts>20000)return;
+  const c=p.coords;lastFixAt=now;smoothFix(c,now);
   me={lat:kf.lat,lng:kf.lng,acc:Math.sqrt(kf.v),raw:c.accuracy||999,sp:c.speed>0?c.speed:0,cr:c.heading!=null&&!isNaN(c.heading)&&c.speed>0.7?c.heading:null,t:Date.now()};
   if(me.raw<=GOOD_ACC)roughSince=0;else if(!roughSince)roughSince=Date.now();gpsWarnUpdate();
   // iPhone "Precise Location" off = fixes 1+ km off. Tell the owner once.
@@ -1756,7 +1763,7 @@ setInterval(()=>{checkNear();if(curTab==="list")renderList()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderAll()}});
 
 /* ---------- offline + updates ---------- */
-const APP_VERSION="2.2.9";
+const APP_VERSION="2.3.0";
 $("#verLbl").textContent="Version "+APP_VERSION;
 let swReg=null;
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").then(r=>swReg=r).catch(()=>{});
