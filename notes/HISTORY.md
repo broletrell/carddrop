@@ -23,3 +23,12 @@ Never read at session start. grep it. Older full handoffs: `handoffs/`.
 - Open: none known. Not yet phone-verified: v1.9.2 SW caching, v2.0.1 date box.
 - Fixed: all-blue launch screen (TDZ) v1.7.1; date box overflow v2.0.1; slow start (network-first app page, double style load, uncached Overture) v1.9.2; jumpy/off GPS dot v1.9.2.
 - Ruled out: green dots at city zoom (no low-zoom building data; owner accepted zoom 14).
+
+## 2026-11-08 session 4 — v2.2.0
+- Atlas section for Card Drop (slug `carddrop` in atlas-build.py + update.md; 7 backfilled atoms + 3 new).
+- Shared map: new Worker `carddrop-sync` + D1 `carddrop-sync` (folder ../carddrop-sync, local git). Team code (16 chars, SHA-256 stored),
+  `/team/new`, `/sync` push+pull in one D1 batch with per-team seq cursor; newest mt wins; tombstones; MAX_TEAMS 50.
+  Client: fingerprint-on-save outbox, syncClean for remote records, Settings start/join/share/sync now/leave, delete-all warning.
+  Tested live: conflict, delete, job, join merge, leave, offline queue, XSS-in-notes stays text. Test teams deleted.
+- "You left off here" marker (per phone, trackLast in persist).
+- Toast lifted above multi-select bar (owner screenshot).

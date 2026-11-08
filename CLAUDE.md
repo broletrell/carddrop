@@ -6,7 +6,8 @@ via Safari > Share > Add to Home Screen.
 
 Stack: one `index.html` (vanilla JS + MapLibre GL 5.6.1 from unpkg, same as SafeRoute), OpenFreeMap
 vector tiles with our own brandStyle(day/night) built in JS (plus liberty as Classic), Esri raster satellite, Nominatim reverse geocoding for addresses.
-Data lives only on the phone (localStorage keys `carddrop.v1`, `carddrop.settings.v1`).
+Data lives on the phone (localStorage `carddrop.v1`, `carddrop.biz.v1`, `carddrop.settings.v1`); optional Shared map syncs houses+biz
+through `../carddrop-sync/` (Cloudflare Worker + D1, https://carddrop-sync.saferoute.workers.dev, `wrangler deploy` there). Sync state: `carddrop.sync.v1`.
 `sw.js` = offline cache, `manifest.webmanifest` + `icons/` = home screen install.
 
 Run locally: preview server "carddrop" in the vault's `.claude/launch.json` (port 8795).

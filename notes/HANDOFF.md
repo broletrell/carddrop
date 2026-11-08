@@ -1,38 +1,35 @@
 # Card Drop — status (read this first)
-**Updated:** 2026-11-08 end of session 3. LIVE **v2.1.0**. Full record: `HISTORY.md` (grep only). Old handoffs: `handoffs/`.
+**Updated:** 2026-11-08 session 4. LIVE **v2.2.0**. Full record: `HISTORY.md` (grep only). Old handoffs: `handoffs/`.
 
 ## Basics
 - Phone PWA for Trell's detailing business: mark houses where cards were left. Owner on iPhone. LIVE
-  https://broletrell.github.io/carddrop/ (repo broletrell/carddrop, Pages on main). Partner may install same link.
-- One `index.html` (vanilla JS, MapLibre 5.6.1, pmtiles 3.2.1), `sw.js`, `version.json`. Data only on phone:
-  `carddrop.v1` houses, `carddrop.biz.v1` {buys,jobs}, `carddrop.settings.v1`.
-- Release: bump `APP_VERSION` + `version.json` + `CACHE` in sw.js (now carddrop-v19), commit, push, poll version.json.
+  https://broletrell.github.io/carddrop/ (repo broletrell/carddrop, Pages on main). Partner installs same link.
+- One `index.html` (vanilla JS, MapLibre 5.6.1, pmtiles 3.2.1), `sw.js`, `version.json`. Data: `carddrop.v1` houses,
+  `carddrop.biz.v1` {buys,jobs}, `carddrop.settings.v1` (per phone), `carddrop.sync.v1` (shared-map state).
+- Sync server: `../carddrop-sync/` (Worker `carddrop-sync` + D1 `carddrop-sync`, local git only). README there.
+- Release: bump `APP_VERSION` + `version.json` + `CACHE` in sw.js (now carddrop-v20), commit, push, poll version.json.
 - Look: dark navy theme = "app theme v2" block at END of <style>. Never use var(--ink) as a background.
 
 ## Testing
-- Preview `carddrop` (8795); if busy use `carddrop-test` → open http://localhost:8796. Temp `_test.html` (git-excluded)
-  fetches index.html, overrides rAF with setTimeout, swaps `location.protocol==="https:"`→false, document.write. Delete after.
-- Click via JS (ref clicks scroll body). Screenshots lag when pane hidden → use `zoom` region [0,0,750,1624].
-- Preview browser can't run service workers; test SW with a node mock.
+- Ports 8795/8796 often already served by old python servers → just navigate to http://localhost:8796/_test.html.
+  Temp `_test.html` (git-excluded): fetch index.html, rAF→setTimeout, swap `location.protocol==="https:"`→false, document.write. Delete after.
+- javascript_tool can't see page `let` globals → drive via DOM clicks + localStorage. Screenshots lag → `zoom` [0,0,750,1624].
+- Sync server allows origins github.io + localhost:8795/8796. Partner simulation: node script POSTing /sync.
 
-## Recent (session 3)
-- v1.9.0 Stats page · v1.9.1 navy tab bar + multi-select · v1.9.2 fast start + GPS smoothing · v2.0.0 redesign ·
-  v2.0.1 date box fix · v2.1.0 expected revenue (talked-to houses count higher).
+## Session 4 (v2.2.0)
+- Shared map: Settings → Start a shared map (code) / Join with a code / Sync now / Leave. Newest edit wins per record,
+  deletes sync, offline queue, sync on open/return/online/45 s. Change detection = fingerprint on every save (persist/persistBiz).
+- "You left off here" pill over the last house changed on THIS phone (status/notes/amount/history only; partner edits don't move it).
+- Toast sits above the multi-select bar instead of covering Card left/Talked/Skip.
+- Atlas section for Card Drop done (`../atlas/carddrop/`).
 
 ## Open / unverified
-- Nothing phone-tested by owner yet except Stats sheet (owner screenshot → date bug, fixed v2.0.1).
+- Nothing phone-tested by owner yet (multi-select, fast start, shared map, marker). Test teams deleted from D1 (0 teams).
+- Anyone with a team code can read/edit that map (by design; 80-bit code). No way to rotate a code yet.
 
-## NEXT (owner asked; give effort line + wait for "go")
-- **FIRST (low effort): give Card Drop its own Obsidian atlas section.** Add slug `carddrop` ("Card Drop") to PROJECTS in
-  `../notes/atlas-build.py` and to the slug list in `~/.claude/commands/update.md`; create `../atlas/carddrop/{bugs,features,decisions,code-map,rules}/`;
-  backfill atoms for session-3 work (7 topic notes in `notes/topics/`); run `python3 -I "/Users/rtb/untitled folder/notes/atlas-build.py"`.
-- **Shared map for owner + partner — HIGH effort.** Sync houses (status, amount, notes, history) + biz (buys, jobs).
-  NOT synced: settings, map style. Owner has a Cloudflare account with apps (check `../saferoute-server`,
-  `../ebike-ai-worker` for existing Worker setup). Plan: Worker + D1/KV, shared team code, per-record last-write-wins
-  on `updated`, tombstones for deletes, offline queue, merge on open/visibility.
+## NEXT ideas
+- Owner + partner try the shared map on two phones. Possible: show who changed a house; rotate team code.
 
 ## This session's notes
-- [[topics/2026-11-08-stats-page|Stats page]] · [[topics/2026-11-08-multi-select-houses|Multi-select]] ·
-  [[topics/2026-11-08-fast-start-caching|Fast start]] · [[topics/2026-11-08-gps-smoothing|GPS smoothing]] ·
-  [[topics/2026-11-08-dark-navy-redesign|Redesign]] · [[topics/2026-11-08-expected-revenue-estimate|Expected revenue]] ·
-  [[topics/2026-11-08-date-box-overflow-fix|Date box fix]]
+- [[topics/2026-11-08-shared-map-sync|Shared map sync]] · [[topics/2026-11-08-left-off-marker|You left off here]] ·
+  [[topics/2026-11-08-toast-above-select-bar|Toast above select bar]]
