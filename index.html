@@ -941,16 +941,19 @@ function gpsWarnUpdate(){const el=document.getElementById("gpsWarn");if(!el)retu
   el.classList.toggle("hidden",!show);if(show)el.textContent="Finding GPS… your dot may be off by "+(me.raw>=1000?(me.raw/1609).toFixed(1)+" mi":Math.round(me.raw*3.281)+" ft")}
 setInterval(gpsWarnUpdate,2000);
 function smoothFix(c,t){
-  const acc=Math.max(3,c.accuracy||50);
-  if(!kf||t-kf.t>90000){kf={lat:c.latitude,lng:c.longitude,v:acc*acc,t};return}
+  // iPhone already smooths its GPS and its "accuracy" is cautious, so trust readings more than the number says
+  const acc=Math.max(3,c.accuracy||50),R=Math.max(4,(acc*0.35)**2);
+  if(!kf||t-kf.t>90000){kf={lat:c.latitude,lng:c.longitude,v:R,t,far:0};return}
   if(t<kf.t)return; // old cached fix arriving late
-  const dt=Math.max(0,(t-kf.t)/1000),spd=c.speed>0?c.speed:0,q=Math.max(1,spd*2);
+  const dt=Math.max(0,(t-kf.t)/1000),spd=c.speed>0?c.speed:0,q=Math.max(3,spd*2); // q: room for walking even when the phone reports no speed
   // walking/driving: move the estimate forward along the GPS course first, so the dot doesn't trail behind you
   if(spd>0.6&&c.heading!=null&&!isNaN(c.heading)&&dt<5){const r=c.heading*Math.PI/180,m=spd*dt;
     kf.lat+=m*Math.cos(r)/111320;kf.lng+=m*Math.sin(r)/(111320*Math.cos(kf.lat*Math.PI/180))}
-  // a reading far worse than what we already know adds almost nothing (stops jumps from bad fixes)
-  const vv=kf.v+q*q*dt,k=vv/(vv+acc*acc);
-  kf={lat:kf.lat+k*(c.latitude-kf.lat),lng:kf.lng+k*(c.longitude-kf.lng),v:(1-k)*vv,t};
+  const vv=kf.v+q*q*dt;let k=vv/(vv+R);
+  // left behind: two readings in a row outside their own error circle = the dot is stale, catch up now
+  const d=dist(kf.lat,kf.lng,c.latitude,c.longitude);let far=d>Math.max(acc,12)?kf.far+1:0;
+  if(far>=2){k=Math.max(k,.85);far=0}
+  kf={lat:kf.lat+k*(c.latitude-kf.lat),lng:kf.lng+k*(c.longitude-kf.lng),v:k>=.85?R:(1-k)*vv,t,far};
 }
 function accPx(){if(!me)return 0;return 2*me.acc/(78271.517*Math.cos(me.lat*Math.PI/180)/Math.pow(2,map.getZoom()))}
 function drawAcc(){const el=document.getElementById("meAcc");if(!el||!me)return;const d=Math.min(accPx(),900);
@@ -1753,7 +1756,7 @@ setInterval(()=>{checkNear();if(curTab==="list")renderList()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderAll()}});
 
 /* ---------- offline + updates ---------- */
-const APP_VERSION="2.2.8";
+const APP_VERSION="2.2.9";
 $("#verLbl").textContent="Version "+APP_VERSION;
 let swReg=null;
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").then(r=>swReg=r).catch(()=>{});
