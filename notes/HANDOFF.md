@@ -1,6 +1,6 @@
 # Card Drop — status (read this first)
 
-**Last updated:** 2026-11-08, session 3. LIVE **v1.9.0** (new Stats page; not phone-tested by owner yet). Older detail: `handoffs/` (grep, don't read whole).
+**Last updated:** 2026-11-08, session 3. LIVE **v1.9.1** (Stats page + multi-select; not phone-tested by owner yet). Older detail: `handoffs/` (grep, don't read whole).
 
 ## Basics
 - Phone PWA to mark houses where detailing business cards were left. Owner (Trell, thedetailboyz916) uses iPhone,
@@ -8,7 +8,7 @@
 - Folder `/Users/rtb/untitled folder/carddrop`: one `index.html` (vanilla JS, MapLibre 5.6.1), `sw.js`, `version.json`.
   Data only in phone localStorage (`carddrop.v1` houses, `carddrop.settings.v1`). Houses: {id,lat,lng,status
   left|talked|booked|skip, addr,num,street,city,notes,amount,created,updated,history[{s,t}]}.
-- Release: bump `APP_VERSION` (index.html) + `version.json` (same) + `CACHE` in sw.js (now carddrop-v14), commit,
+- Release: bump `APP_VERSION` (index.html) + `version.json` (same) + `CACHE` in sw.js (now carddrop-v15), commit,
   push (Mac's saved GitHub credential, never print it), poll `curl .../version.json?x=$RANDOM` until new. Phone shows
   green Update banner (or close app fully + reopen).
 
@@ -29,6 +29,13 @@
   de-duped 8 m grid, shown from zoom 14 (`AVAIL_Z`). Marked houses = `cd-done` circle layer colored by status
   (Card left blue, Talked amber, Booked purple #9333ea, Skip gray), min size city-wide. Tap → bottom sheet.
 - Map page = map only + small legend pill top-left (`#mLegend`). Old top stats bar removed (`--tbH` fixed 30px).
+- Tab bar is deep navy (#0b1226) on every page (owner asked).
+- **Multi-select (v1.9.1)**: check-circle button in map side buttons → select mode (`selecting`, `picks` Map declared near
+  top with `ovReady` — keep it there, withOverlay reads it at startup). "Tap to pick" / "Swipe to pick" (swipe disables
+  dragPan; starting a swipe on a picked house un-picks). Picks shown as white dot + blue ring (`cd-pick` layer). Bottom
+  bar: Card left / Talked / Skip (no Booked — needs $ per house). `applyPicks` = one undo for all. New houses get
+  addresses via a 1-per-second queue (`fillAddresses`/`runAddr`); unfinished ones retried 5 s after next launch; `h.noAddr`
+  when Nominatim has none. Leaving the Map tab ends select mode.
 - Booked asks "$ amount" (`askAmount`, stored `h.amount`).
 - **Stats tab (v1.9, dark, like mockup)** — code under `/* ---------- stats ---------- */`:
   - Data: `carddrop.biz.v1` = {buys:[{id,t,qty,cost}], jobs:[{id,t,amount,source,note}]} (`biz`, `persistBiz`). In backup
@@ -58,6 +65,9 @@
   low-zoom tiles + too many points) — owner accepted zoom 14 limit.
 
 ## NEXT
-- Owner to try v1.9.0 on iPhone (Update banner). Check: dropdowns open the iOS picker, Add cards/Add job sheets + date picker,
-  numbers look right with real data. Nothing else requested yet.
-- Ideas if asked: edit (not just delete) purchases/jobs; include buys/jobs in CSV export.
+- **Shared map for owner + business partner (owner said go-ahead pending, needs HIGH effort):** sync houses (dots,
+  statuses, amounts, notes, history) + biz (card purchases, other jobs) between 2 phones. NOT synced: settings, map style.
+  Owner has a Cloudflare account with other apps on it (check SafeRoute server / ebike-ai-worker for existing setup).
+  Plan: Cloudflare Worker + D1/KV, shared team code to join, per-record last-write-wins by `updated`, tombstones for
+  deletes, offline queue. Still give effort line + wait for "go".
+- Owner to try v1.9.x on iPhone: Stats dropdowns/sheets, multi-select swipe on a real street.
