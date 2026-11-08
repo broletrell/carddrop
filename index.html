@@ -1501,11 +1501,11 @@ async function syncLeave(){
   const pend=sync?Object.keys(sync.out).length:0;
   if(!await confirmDlg("Leave the shared map?",`Your houses stay on this phone, but changes won't sync with your partner anymore.${pend?` ${pend} change${pend==1?"":"s"} haven't been sent yet.`:""}`,"Leave",true))return;
   sync=null;saveSync();renderSyncCard();toast("Left the shared map")}
-// sync on open, when coming back to the app, when signal returns, and every 45 s while open
+// sync on open, when coming back to the app, when signal returns, and every 5 s while open (near-live partner updates)
 if(sync)syncSoon(600);
 document.addEventListener("visibilitychange",()=>{if(!sync)return;if(!document.hidden)syncSoon(300);else if(Object.keys(sync.out).length)syncNow()});
 window.addEventListener("online",()=>{if(sync)syncSoon(300)});
-setInterval(()=>{if(sync&&!document.hidden)syncNow()},45000);
+setInterval(()=>{if(sync&&!document.hidden&&!syncBusy&&navigator.onLine!==false)syncNow()},5000);
 $("#setBiz").addEventListener("input",e=>{settings.biz=e.target.value.trim();saveSettings()});
 $("#setNear").onchange=e=>{settings.near=e.target.checked;saveSettings();checkNear();toast(settings.near?"Nearby warnings on":"Nearby warnings off",null,1500)};
 $("#setFollow").onchange=e=>{settings.follow=follow=e.target.checked;saveSettings();if(follow){startGPS();if(me)pan(me.lat,me.lng)}};
@@ -1576,7 +1576,7 @@ setInterval(()=>{checkNear();if(curTab==="list")renderList()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderAll()}});
 
 /* ---------- offline + updates ---------- */
-const APP_VERSION="2.2.0";
+const APP_VERSION="2.2.1";
 $("#verLbl").textContent="Version "+APP_VERSION;
 let swReg=null;
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").then(r=>swReg=r).catch(()=>{});
