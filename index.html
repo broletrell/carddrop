@@ -318,7 +318,8 @@ html,body{background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialias
 .search input::placeholder,.addr-edit::placeholder,.notes::placeholder,.amt input::placeholder,.dinput::placeholder{color:var(--ink3)}
 .addr-edit:focus,.notes:focus,.dinput:focus,.amt:focus-within,.search:focus-within{border-color:rgba(59,130,246,.7);box-shadow:0 0 0 3px rgba(59,130,246,.18)}
 .addr-edit{border-radius:14px;padding:12px 14px;font-weight:600}
-.dinput{color-scheme:dark}
+.dinput{color-scheme:dark;display:block;max-width:100%;min-width:0;-webkit-appearance:none;appearance:none;text-align:left}
+.dinput::-webkit-date-and-time-value{text-align:left}
 .amt b{color:var(--ink2)}
 
 /* filter chips */
@@ -1413,7 +1414,7 @@ setInterval(()=>{checkNear();if(curTab==="list")renderList()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderAll()}});
 
 /* ---------- offline + updates ---------- */
-const APP_VERSION="2.0.0";
+const APP_VERSION="2.0.1";
 $("#verLbl").textContent="Version "+APP_VERSION;
 let swReg=null;
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").then(r=>swReg=r).catch(()=>{});
