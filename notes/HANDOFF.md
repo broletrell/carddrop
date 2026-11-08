@@ -10,6 +10,7 @@
 - Map style picker (6 styles: Street, Colorful, Clean light, Dark, Satellite, Hybrid) added 2026-11-07.
 - Update banner + Settings > Check for updates (v1.2, compares version.json).
 - v1.3: fixed gap at bottom on iPhone home-screen app (sizes to screen.height in standalone; fixed elements now absolute in body). Not yet confirmed on phone.
+- v1.4: switched Leaflet -> MapLibre + OpenFreeMap vector maps (sharp, like SafeRoute). Styles: Street(liberty), Bright, Clean light(positron), Dark, Satellite, Hybrid.
 - LIVE at https://broletrell.github.io/carddrop/ (public repo broletrell/carddrop, Pages on main).
 
 ## Older context

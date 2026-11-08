@@ -14,7 +14,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" type="image/png" href="icons/icon-32.png">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css">
 <style>
 :root{
   --bg:#0b1226; --panel:#ffffff; --panel2:#f3f5fa; --ink:#0f172a; --ink2:#5b6478; --line:#e3e7ef;
@@ -39,8 +39,9 @@ body{position:relative}
 .screen{position:absolute;inset:0;bottom:calc(var(--tab) + var(--sab));background:var(--panel2);overflow:hidden}
 .screen.scroll{overflow-y:auto;-webkit-overflow-scrolling:touch}
 #map{position:absolute;inset:0;background:#dfe5ee}
-.leaflet-control-attribution{font-size:9px!important;opacity:.7}
-.leaflet-container{font:inherit}
+.maplibregl-ctrl-attrib{font-size:9px;opacity:.75}
+.maplibregl-ctrl-bottom-right{bottom:calc(var(--tab) * 0)}
+.maplibregl-marker{cursor:pointer}
 
 /* top bar on map */
 .topbar{position:absolute;left:12px;right:12px;top:calc(var(--sat) + 10px);z-index:500;display:flex;align-items:center;gap:10px;
@@ -75,7 +76,7 @@ body{position:relative}
 
 /* markers */
 .pin{width:30px;height:30px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);display:grid;place-items:center;color:#fff;font-weight:800;font-size:10px;line-height:1}
-.pin.num{width:max-content;min-width:30px;padding:0 7px;border-radius:15px;font-size:11px;position:relative;left:50%;transform:translateX(-50%)}
+.pin.num{width:max-content;min-width:30px;padding:0 7px;border-radius:15px;font-size:11px;}
 .me{width:20px;height:20px;border-radius:50%;background:#2563eb;border:3px solid #fff;box-shadow:0 0 0 6px rgba(37,99,235,.25),0 2px 6px rgba(0,0,0,.3)}
 .tmp{width:34px;height:34px;border-radius:50%;background:rgba(15,23,42,.85);border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);animation:pulse 1.2s infinite}
 @keyframes pulse{50%{transform:scale(1.15)}}
@@ -329,12 +330,12 @@ body:not(.on-map) .toast{bottom:calc(var(--tab) + var(--sab) + 14px)}
   <div class="tip" id="onbTip">Tip: In Safari tap Share, then "Add to Home Screen" to install it like an app.</div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js"></script>
 <script>
 /* iPhone home-screen apps report a short screen; size to the real screen. */
 (function(){function fit(){var sa=window.matchMedia("(display-mode: standalone)").matches||navigator.standalone;
   var h=window.innerHeight;if(sa&&screen.height>h){var land=Math.abs(window.orientation||0)===90;h=land?Math.min(screen.width,screen.height):Math.max(screen.width,screen.height)}
-  document.documentElement.style.setProperty("--H",h+"px");if(window.map&&map.invalidateSize)map.invalidateSize()}
+  document.documentElement.style.setProperty("--H",h+"px");if(window.cdMap)cdMap.resize()}
   fit();addEventListener("resize",fit);addEventListener("orientationchange",function(){setTimeout(fit,300)})})();
 (function(){
 "use strict";
@@ -370,41 +371,44 @@ function haptic(){try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}}
 
 /* ---------- map ---------- */
 const startView=settings.lastView||{lat:38.58,lng:-121.49,z:12};
-const map=L.map("map",{zoomControl:false,attributionControl:true,tap:true,maxZoom:21}).setView([startView.lat,startView.lng],startView.z);
-const E="https://server.arcgisonline.com/ArcGIS/rest/services/";
-const et=(n,o)=>L.tileLayer(E+n+"/MapServer/tile/{z}/{y}/{x}",Object.assign({maxZoom:21,maxNativeZoom:19,attribution:"&copy; Esri"},o||{}));
+const map=new maplibregl.Map({container:"map",style:"https://tiles.openfreemap.org/styles/liberty",center:[startView.lng,startView.lat],zoom:startView.z,maxZoom:20,
+  dragRotate:false,pitchWithRotate:false,attributionControl:{compact:true}});
+map.touchZoomRotate.disableRotation();window.cdMap=map;
+const go=(lat,lng,z)=>map.easeTo({center:[lng,lat],zoom:z==null?map.getZoom():z,duration:600});
+const pan=(lat,lng)=>map.easeTo({center:[lng,lat],duration:500});
+function mk(html,lat,lng,click){const w=document.createElement("div");w.innerHTML=html;const el=w.firstElementChild;
+  if(click)el.addEventListener("click",e=>{e.stopPropagation();click()});
+  return new maplibregl.Marker({element:el,anchor:"center"}).setLngLat([lng,lat]).addTo(map)}
+const ESRI="https://server.arcgisonline.com/ArcGIS/rest/services/";
+function raster(names){const st={version:8,sources:{},layers:[]};names.forEach((n,i)=>{st.sources["r"+i]={type:"raster",tiles:[ESRI+n+"/MapServer/tile/{z}/{y}/{x}"],tileSize:256,maxzoom:19,attribution:"&copy; Esri"};st.layers.push({id:"r"+i,type:"raster",source:"r"+i})});return st}
+const OFM="https://tiles.openfreemap.org/styles/";
 const LAYERS={
-  street:{name:"Street",sub:"Shows house numbers",l:L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:21,maxNativeZoom:19,attribution:"&copy; OpenStreetMap"})},
-  color:{name:"Colorful",sub:"Google-style streets",l:et("World_Street_Map")},
-  light:{name:"Clean light",sub:"Simple and gray",l:L.layerGroup([et("Canvas/World_Light_Gray_Base",{maxNativeZoom:16}),et("Canvas/World_Light_Gray_Reference",{maxNativeZoom:16})])},
-  dark:{name:"Dark",sub:"For dusk and night",l:L.layerGroup([et("Canvas/World_Dark_Gray_Base",{maxNativeZoom:16}),et("Canvas/World_Dark_Gray_Reference",{maxNativeZoom:16})])},
-  sat:{name:"Satellite",sub:"Photo with roads",l:L.layerGroup([et("World_Imagery"),et("Reference/World_Transportation",{opacity:.9})])},
-  hybrid:{name:"Hybrid",sub:"Photo with street names",l:L.layerGroup([et("World_Imagery"),et("Reference/World_Transportation",{opacity:.9}),et("Reference/World_Boundaries_and_Places")])}
+  street:{name:"Street",sub:"Natural colors, house numbers",style:OFM+"liberty"},
+  color:{name:"Bright",sub:"Bold, colorful streets",style:OFM+"bright"},
+  light:{name:"Clean light",sub:"Simple and gray",style:OFM+"positron"},
+  dark:{name:"Dark",sub:"For dusk and night",style:OFM+"dark"},
+  sat:{name:"Satellite",sub:"Photo with roads",style:raster(["World_Imagery","Reference/World_Transportation"])},
+  hybrid:{name:"Hybrid",sub:"Photo with roads and place names",style:raster(["World_Imagery","Reference/World_Transportation","Reference/World_Boundaries_and_Places"])}
 };
-function setLayer(k){if(!LAYERS[k])k="street";Object.values(LAYERS).forEach(x=>map.removeLayer(x.l));LAYERS[k].l.addTo(map);settings.layer=k;saveSettings();$("#btnLayer").classList.toggle("on",k!=="street")}
-let tileErrs=0;LAYERS.street.l.on("tileerror",()=>{if(++tileErrs===6)toast("Map tiles are slow to load. Check your signal.")});
+let curStyle=null;
+function setLayer(k){if(!LAYERS[k])k="street";if(curStyle!==k){curStyle=k;map.setStyle(LAYERS[k].style)}settings.layer=k;saveSettings();$("#btnLayer").classList.toggle("on",k!=="street")}
 setLayer(settings.layer);
 $("#btnLayer").onclick=()=>{haptic();sheetOpen(`<div class="sh-addr">Map style</div><div class="card" style="margin-top:12px">${Object.entries(LAYERS).map(([k,x])=>`<button class="row" data-ly="${k}"><div class="m"><div class="a">${x.name}</div><div class="s">${x.sub}</div></div>${settings.layer===k?'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5 9-10"/></svg>':""}</button>`).join("")}</div>`);
   document.querySelectorAll("[data-ly]").forEach(b=>b.onclick=()=>{setLayer(b.dataset.ly);sheetClose();toast(LAYERS[b.dataset.ly].name+" map",null,1400)})};
 map.on("moveend",()=>{const c=map.getCenter();settings.lastView={lat:c.lat,lng:c.lng,z:map.getZoom()};saveSettings();renderMarkers()});
 
-const markerLayer=L.layerGroup().addTo(map);
 const markers=new Map();
-function pinIcon(h){
+function pinHtml(h){
   const st=STATUS[h.status]||STATUS.left;const showNum=map.getZoom()>=17&&h.num;
   const inner=showNum?esc(h.num):(h.status==="booked"?"$":h.status==="skip"?"&times;":h.status==="talked"?"&bull;":"&#10003;");
-  return L.divIcon({className:"",html:`<div class="pin${showNum?" num":""}" style="background:${st.color}">${inner}</div>`,iconSize:[30,30],iconAnchor:[15,15]});
+  return `<div><div class="pin${showNum?" num":""}" style="background:${st.color}">${inner}</div></div>`;
 }
 let lastZoomBand=null;
 function renderMarkers(force){
   const band=map.getZoom()>=17;
   if(!force&&band===lastZoomBand&&markers.size===houses.length)return;
-  lastZoomBand=band;markerLayer.clearLayers();markers.clear();
-  for(const h of houses){
-    const m=L.marker([h.lat,h.lng],{icon:pinIcon(h),keyboard:false,riseOnHover:true});
-    m.on("click",e=>{L.DomEvent.stopPropagation(e);openHouse(h.id)});
-    m.addTo(markerLayer);markers.set(h.id,m);
-  }
+  lastZoomBand=band;markers.forEach(m=>m.remove());markers.clear();
+  for(const h of houses)markers.set(h.id,mk(pinHtml(h),h.lat,h.lng,()=>openHouse(h.id)));
 }
 
 /* ---------- GPS ---------- */
@@ -416,12 +420,10 @@ function startGPS(){
 }
 function onPos(p){
   me={lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy,t:Date.now()};
-  const ll=[me.lat,me.lng];
-  if(!meMarker){meMarker=L.marker(ll,{icon:L.divIcon({className:"",html:'<div class="me"></div>',iconSize:[20,20],iconAnchor:[10,10]}),interactive:false,zIndexOffset:1000}).addTo(map);
-    meCircle=L.circle(ll,{radius:me.acc,color:"#2563eb",weight:1,fillOpacity:.08,interactive:false}).addTo(map)}
-  else{meMarker.setLatLng(ll);meCircle.setLatLng(ll).setRadius(Math.min(me.acc,200))}
-  if(firstFix){firstFix=false;if(!settings.lastView||settings.lastView.z<15||locateRequested)map.setView(ll,18);locateRequested=false}
-  else if(follow||locateRequested){map.panTo(ll);locateRequested=false}
+  if(!meMarker){meMarker=mk('<div style="z-index:5;pointer-events:none"><div class="me"></div></div>',me.lat,me.lng);meMarker.getElement().style.zIndex=5}
+  else meMarker.setLngLat([me.lng,me.lat]);
+  if(firstFix){firstFix=false;if(!settings.lastView||settings.lastView.z<15||locateRequested)go(me.lat,me.lng,18);locateRequested=false}
+  else if(follow||locateRequested){pan(me.lat,me.lng);locateRequested=false}
   checkNear();
 }
 function onPosErr(e){
@@ -432,7 +434,7 @@ function onPosErr(e){
 let locateRequested=false;
 $("#btnLocate").onclick=()=>{
   haptic();
-  if(me){map.setView([me.lat,me.lng],Math.max(map.getZoom(),18))}else{locateRequested=true;toast("Finding you…",null,1800)}
+  if(me){go(me.lat,me.lng,Math.max(map.getZoom(),18))}else{locateRequested=true;toast("Finding you…",null,1800)}
   startGPS();
 };
 map.on("dragstart",()=>{if(follow&&!settings.follow)follow=false});
@@ -502,17 +504,17 @@ $("#fab").onclick=async()=>{
     if(!ok){openHouse(n.h.id);return}
   }
   const h=addHouse(me.lat,me.lng,"left",null,"");
-  map.panTo([me.lat,me.lng]);
+  pan(me.lat,me.lng);
   const info=await lookup(me.lat,me.lng);
   if(info&&houses.includes(h)){Object.assign(h,{addr:info.addr,num:info.num,street:info.street,city:info.city});persist();renderAll();$("#toastT").textContent="Card left: "+title(h)}
 };
 
 /* tap map = new house */
 let tmpMarker=null;
-map.on("click",e=>{openNew(e.latlng.lat,e.latlng.lng)});
+map.on("click",e=>{openNew(e.lngLat.lat,e.lngLat.lng)});
 
 function sheetOpen(html){$("#sheetBody").innerHTML=html;$("#back").classList.remove("hidden");requestAnimationFrame(()=>{$("#back").classList.add("show");$("#sheet").classList.add("show")});$("#sheet").scrollTop=0}
-function sheetClose(){$("#back").classList.remove("show");$("#sheet").classList.remove("show");setTimeout(()=>$("#back").classList.add("hidden"),250);if(tmpMarker){map.removeLayer(tmpMarker);tmpMarker=null}}
+function sheetClose(){$("#back").classList.remove("show");$("#sheet").classList.remove("show");setTimeout(()=>$("#back").classList.add("hidden"),250);if(tmpMarker){tmpMarker.remove();tmpMarker=null}}
 $("#back").onclick=sheetClose;
 // swipe down to close
 (function(){let y0=null;const s=$("#sheet");s.addEventListener("touchstart",e=>{if(s.scrollTop<=0)y0=e.touches[0].clientY},{passive:true});
@@ -522,8 +524,8 @@ $("#back").onclick=sheetClose;
 function statusButtons(sel){return `<div class="sgrid">${ORDER.map(k=>`<button class="sbtn${sel===k?" sel":""}" data-st="${k}" style="background:${STATUS[k].color}">${STATUS[k].label}</button>`).join("")}</div>`}
 
 async function openNew(lat,lng){
-  if(tmpMarker)map.removeLayer(tmpMarker);
-  tmpMarker=L.marker([lat,lng],{icon:L.divIcon({className:"",html:'<div class="tmp"></div>',iconSize:[34,34],iconAnchor:[17,17]}),interactive:false}).addTo(map);
+  if(tmpMarker)tmpMarker.remove();
+  tmpMarker=mk('<div style="pointer-events:none"><div class="tmp"></div></div>',lat,lng);
   const n=nearest(lat,lng);const dup=n&&n.d<=18?n:null;
   let info=null;
   sheetOpen(`
@@ -549,7 +551,7 @@ async function openNew(lat,lng){
 
 function openHouse(id){
   const h=houses.find(x=>x.id===id);if(!h)return;
-  if(tmpMarker){map.removeLayer(tmpMarker);tmpMarker=null}
+  if(tmpMarker){tmpMarker.remove();tmpMarker=null}
   const d=me?dist(me.lat,me.lng,h.lat,h.lng):null;
   sheetOpen(`
     <div class="sh-addr">${esc(title(h))}</div>
@@ -571,7 +573,7 @@ function openHouse(id){
   $("#sheetBody").querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>{saveText();if(b.dataset.st!==h.status)setStatus(h,b.dataset.st);sheetClose()});
   $("#hDone").onclick=()=>{saveText();sheetClose()};
   $("#hDir").onclick=()=>{saveText();location.href=`https://maps.apple.com/?daddr=${h.lat},${h.lng}&dirflg=w`};
-  $("#hShow").onclick=()=>{saveText();sheetClose();showTab("map");map.setView([h.lat,h.lng],19)};
+  $("#hShow").onclick=()=>{saveText();sheetClose();showTab("map");go(h.lat,h.lng,19)};
   $("#hDel").onclick=async()=>{if(await confirmDlg("Delete this house?",title(h)+" will be removed. You can undo right after.","Delete",true)){sheetClose();deleteHouse(h)}};
 }
 
@@ -595,7 +597,7 @@ let curTab="map";
 function showTab(t){
   curTab=t;document.body.classList.toggle("on-map",t==="map");document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
   ["map","list","stats","set"].forEach(k=>$("#s-"+k).classList.toggle("hidden",k!==t));
-  if(t==="map")setTimeout(()=>map.invalidateSize(),50);
+  if(t==="map")setTimeout(()=>map.resize(),50);
   if(t==="list")renderList();if(t==="stats")renderStats();if(t==="set")renderSettings();
 }
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{haptic();showTab(b.dataset.tab)});
@@ -665,7 +667,7 @@ function renderSettings(){
 }
 $("#setBiz").addEventListener("input",e=>{settings.biz=e.target.value.trim();saveSettings();$("#bizName").textContent=settings.biz||"Mobile Detailing"});
 $("#setNear").onchange=e=>{settings.near=e.target.checked;saveSettings();checkNear();toast(settings.near?"Nearby warnings on":"Nearby warnings off",null,1500)};
-$("#setFollow").onchange=e=>{settings.follow=follow=e.target.checked;saveSettings();if(follow){startGPS();if(me)map.panTo([me.lat,me.lng])}};
+$("#setFollow").onchange=e=>{settings.follow=follow=e.target.checked;saveSettings();if(follow){startGPS();if(me)pan(me.lat,me.lng)}};
 $("#setRadiusBtn").onclick=()=>{const i=RADII.findIndex(r=>r[0]===settings.radius);settings.radius=RADII[(i+1)%RADII.length][0];saveSettings();renderSettings();checkNear();haptic()};
 
 async function shareOrDownload(name,text,type){
@@ -729,7 +731,7 @@ setInterval(()=>{checkNear();if(curTab==="list")renderList()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderAll()}});
 
 /* ---------- offline + updates ---------- */
-const APP_VERSION="1.3";
+const APP_VERSION="1.4";
 $("#verLbl").textContent="Version "+APP_VERSION;
 let swReg=null;
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").then(r=>swReg=r).catch(()=>{});
