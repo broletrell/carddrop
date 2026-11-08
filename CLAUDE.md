@@ -11,7 +11,7 @@ Data lives only on the phone (localStorage keys `carddrop.v1`, `carddrop.setting
 
 Run locally: preview server "carddrop" in the vault's `.claude/launch.json` (port 8795).
 Deploy: GitHub Pages from `broletrell/carddrop` main branch -> https://broletrell.github.io/carddrop/
-Bump `CACHE` in `sw.js` when shipping changes.
+Each release: bump `APP_VERSION` in index.html AND `version.json` (same value) so the in-app Update banner shows; also bump `CACHE` in `sw.js`.
 
 Note: CARTO basemaps now return "API KEY REQUIRED" tiles; don't switch back.
 

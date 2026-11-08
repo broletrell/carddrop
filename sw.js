@@ -1,5 +1,5 @@
 // Card Drop offline support: app files load even with no signal.
-const CACHE = "carddrop-v2";
+const CACHE = "carddrop-v3";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png",
   "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css", "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"];
 self.addEventListener("install", e => {
@@ -13,7 +13,7 @@ self.addEventListener("fetch", e => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   // Address lookups always go to the network.
-  if (url.hostname.includes("nominatim")) return;
+  if (url.hostname.includes("nominatim") || url.pathname.endsWith("version.json")) return;
   // App page: network first so updates show up, cache when offline.
   if (req.mode === "navigate" || url.origin === location.origin) {
     e.respondWith(fetch(req).then(r => { const copy = r.clone(); caches.open(CACHE).then(c => c.put(req, copy)); return r; })
