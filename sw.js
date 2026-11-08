@@ -1,5 +1,5 @@
 // Card Drop offline support: app files load even with no signal.
-const CACHE = "carddrop-v3";
+const CACHE = "carddrop-v4";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png",
   "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css", "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"];
 self.addEventListener("install", e => {

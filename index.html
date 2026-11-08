@@ -25,7 +25,7 @@
   --tab:64px;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+html,body{margin:0;height:var(--H,100%);background:var(--bg);color:var(--ink);
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;overflow:hidden;
   -webkit-user-select:none;user-select:none;overscroll-behavior:none}
 input,textarea,select{font:inherit;font-size:16px;-webkit-user-select:text;user-select:text}
@@ -34,7 +34,8 @@ svg{display:block}
 .hidden{display:none!important}
 
 /* ---------- screens ---------- */
-#app{position:fixed;inset:0}
+body{position:relative}
+#app{position:absolute;inset:0}
 .screen{position:absolute;inset:0;bottom:calc(var(--tab) + var(--sab));background:var(--panel2);overflow:hidden}
 .screen.scroll{overflow-y:auto;-webkit-overflow-scrolling:touch}
 #map{position:absolute;inset:0;background:#dfe5ee}
@@ -80,7 +81,7 @@ svg{display:block}
 @keyframes pulse{50%{transform:scale(1.15)}}
 
 /* tabs */
-.tabs{position:fixed;left:0;right:0;bottom:0;height:calc(var(--tab) + var(--sab));padding-bottom:var(--sab);background:rgba(255,255,255,.96);
+.tabs{position:absolute;left:0;right:0;bottom:0;height:calc(var(--tab) + var(--sab));padding-bottom:var(--sab);background:rgba(255,255,255,.96);
   backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;z-index:900}
 .tabs button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;font-weight:600;color:#8a93a6}
 .tabs button.on{color:var(--brand2)}
@@ -144,9 +145,9 @@ svg{display:block}
 .foot{text-align:center;color:var(--ink2);font-size:12px;margin-top:22px;line-height:1.6}
 
 /* sheet */
-.backdrop{position:fixed;inset:0;background:rgba(2,6,23,.45);z-index:1000;opacity:0;transition:opacity .2s}
+.backdrop{position:absolute;inset:0;background:rgba(2,6,23,.45);z-index:1000;opacity:0;transition:opacity .2s}
 .backdrop.show{opacity:1}
-.sheet{position:fixed;left:0;right:0;bottom:0;z-index:1001;background:#fff;border-radius:22px 22px 0 0;padding:8px 16px calc(18px + var(--sab));
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:1001;background:#fff;border-radius:22px 22px 0 0;padding:8px 16px calc(18px + var(--sab));
   transform:translateY(105%);transition:transform .28s cubic-bezier(.2,.9,.3,1);max-height:88vh;overflow-y:auto;box-shadow:0 -10px 30px rgba(0,0,0,.2)}
 .sheet.show{transform:none}
 .grab{width:40px;height:5px;border-radius:3px;background:#d5dae3;margin:2px auto 12px}
@@ -168,17 +169,17 @@ svg{display:block}
 .primary{width:100%;height:52px;border-radius:14px;background:var(--brand2);color:#fff;font-weight:700;font-size:16px;margin-top:12px}
 
 /* toast */
-.toast{position:fixed;left:16px;right:16px;bottom:calc(var(--tab) + var(--sab) + 90px);z-index:1100;background:#0f172a;color:#fff;border-radius:14px;padding:12px 14px;
+.toast{position:absolute;left:16px;right:16px;bottom:calc(var(--tab) + var(--sab) + 90px);z-index:1100;background:#0f172a;color:#fff;border-radius:14px;padding:12px 14px;
   display:flex;align-items:center;gap:10px;box-shadow:0 10px 30px rgba(0,0,0,.3);transform:translateY(20px);opacity:0;transition:.22s;pointer-events:none;font-size:15px}
 body:not(.on-map) .toast{bottom:calc(var(--tab) + var(--sab) + 14px)}
-.upd{position:fixed;left:12px;right:12px;top:calc(var(--sat) + 10px);z-index:1150;background:#16a34a;color:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 10px 30px rgba(0,0,0,.3);animation:drop .25s ease}
+.upd{position:absolute;left:12px;right:12px;top:calc(var(--sat) + 10px);z-index:1150;background:#16a34a;color:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 10px 30px rgba(0,0,0,.3);animation:drop .25s ease}
 .upd b{display:block;font-size:15px}.upd small{opacity:.9;font-size:12px}
 .upd button{margin-left:auto;background:#fff;color:#16a34a;font-weight:800;border-radius:12px;padding:9px 14px}
 .toast.show{transform:none;opacity:1;pointer-events:auto}
 .toast button{margin-left:auto;color:#60a5fa;font-weight:700;padding:4px 6px}
 
 /* dialog */
-.dlg{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.95);z-index:1201;width:min(320px,86vw);background:#fff;border-radius:20px;padding:20px 18px 14px;
+.dlg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.95);z-index:1201;width:min(320px,86vw);background:#fff;border-radius:20px;padding:20px 18px 14px;
   opacity:0;transition:.18s;pointer-events:none;text-align:center}
 .dlg.show{opacity:1;transform:translate(-50%,-50%);pointer-events:auto}
 .dlg h3{margin:0 0 6px;font-size:18px}
@@ -190,7 +191,7 @@ body:not(.on-map) .toast{bottom:calc(var(--tab) + var(--sab) + 14px)}
 #dlgBack{z-index:1200}
 
 /* onboarding */
-.onb{position:fixed;inset:0;z-index:1300;background:linear-gradient(160deg,#0b1226 0%,#12306f 100%);color:#fff;display:flex;flex-direction:column;
+.onb{position:absolute;inset:0;z-index:1300;background:linear-gradient(160deg,#0b1226 0%,#12306f 100%);color:#fff;display:flex;flex-direction:column;
   padding:calc(var(--sat) + 40px) 24px calc(var(--sab) + 24px)}
 .onb img{width:96px;height:96px;border-radius:22px;box-shadow:0 12px 30px rgba(0,0,0,.35)}
 .onb h1{font-size:34px;margin:22px 0 6px;letter-spacing:-.6px}
@@ -330,6 +331,11 @@ body:not(.on-map) .toast{bottom:calc(var(--tab) + var(--sab) + 14px)}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+/* iPhone home-screen apps report a short screen; size to the real screen. */
+(function(){function fit(){var sa=window.matchMedia("(display-mode: standalone)").matches||navigator.standalone;
+  var h=window.innerHeight;if(sa&&screen.height>h){var land=Math.abs(window.orientation||0)===90;h=land?Math.min(screen.width,screen.height):Math.max(screen.width,screen.height)}
+  document.documentElement.style.setProperty("--H",h+"px");if(window.map&&map.invalidateSize)map.invalidateSize()}
+  fit();addEventListener("resize",fit);addEventListener("orientationchange",function(){setTimeout(fit,300)})})();
 (function(){
 "use strict";
 const $=s=>document.querySelector(s);
@@ -723,7 +729,7 @@ setInterval(()=>{checkNear();if(curTab==="list")renderList()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderAll()}});
 
 /* ---------- offline + updates ---------- */
-const APP_VERSION="1.2";
+const APP_VERSION="1.3";
 $("#verLbl").textContent="Version "+APP_VERSION;
 let swReg=null;
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").then(r=>swReg=r).catch(()=>{});

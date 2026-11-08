@@ -9,6 +9,7 @@
   distance, follow me, backup/restore JSON, CSV export, delete all), undo, onboarding, app icon, offline.
 - Map style picker (6 styles: Street, Colorful, Clean light, Dark, Satellite, Hybrid) added 2026-11-07.
 - Update banner + Settings > Check for updates (v1.2, compares version.json).
+- v1.3: fixed gap at bottom on iPhone home-screen app (sizes to screen.height in standalone; fixed elements now absolute in body). Not yet confirmed on phone.
 - LIVE at https://broletrell.github.io/carddrop/ (public repo broletrell/carddrop, Pages on main).
 
 ## Older context
