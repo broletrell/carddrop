@@ -411,6 +411,7 @@ function title(h){return h.addr||"Unnamed spot"}
 function nearest(lat,lng,skipId){let best=null,bd=1e9;for(const h of houses){if(h.id===skipId)continue;const d=dist(lat,lng,h.lat,h.lng);if(d<bd){bd=d;best=h}}return best?{h:best,d:bd}:null}
 function haptic(){try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}}
 
+let me=null; // my GPS position (declared early: auto map style reads it at startup)
 /* ---------- map ---------- */
 const startView=settings.lastView||{lat:38.58,lng:-121.49,z:12};
 const map=new maplibregl.Map({container:"map",style:{version:8,sources:{},layers:[{id:"bg",type:"background",paint:{"background-color":"#0d1424"}}]},center:[startView.lng,startView.lat],zoom:startView.z,maxZoom:21,
@@ -577,7 +578,7 @@ function doneFC(){return {type:"FeatureCollection",features:houses.map(h=>({type
 function renderMarkers(){const s=map.getSource&&map.getSource("cd-done");if(s)s.setData(doneFC())}
 
 /* ---------- GPS ---------- */
-let me=null,meMarker=null,meCircle=null,watchId=null,follow=!!settings.follow,firstFix=true;
+let meMarker=null,meCircle=null,watchId=null,follow=!!settings.follow,firstFix=true;
 function startGPS(){
   if(!("geolocation" in navigator)){toast("This phone can't share location");return}
   if(watchId!=null)return;
@@ -964,7 +965,7 @@ setInterval(()=>{checkNear();if(curTab==="list")renderList()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderAll()}});
 
 /* ---------- offline + updates ---------- */
-const APP_VERSION="1.7";
+const APP_VERSION="1.7.1";
 $("#verLbl").textContent="Version "+APP_VERSION;
 let swReg=null;
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").then(r=>swReg=r).catch(()=>{});

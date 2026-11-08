@@ -1,9 +1,9 @@
 # Card Drop — status
 
-**Last updated:** 2026-11-07 (end of session 1)
+**Last updated:** 2026-11-07 (session 2, v1.7 live)
 
 ## Status
-- LIVE v1.6 at https://broletrell.github.io/carddrop/ (public repo broletrell/carddrop, GitHub Pages on main).
+- LIVE v1.7 at https://broletrell.github.io/carddrop/ (public repo broletrell/carddrop, GitHub Pages on main).
   Owner installed it on iPhone via Add to Home Screen; it works.
 - Local folder: `/Users/rtb/untitled folder/carddrop` (git, remote origin set). Push uses the Mac's saved
   GitHub credential (`git credential fill`, scope repo) — never print it.
@@ -21,26 +21,31 @@
   marked house within 14 m. OSM address points too sparse in Sacramento.
 - Tap house → bottom sheet (status cards Card left/Talked/Booked/Skip, address auto via Nominatim, notes, dup warning),
   house outline highlight (`highlightAt`), map slides house above sheet.
-- Marked houses = DOM pins (`pinHtml`, show house number pill at z17+), pop animation, shadow.
+- Marked houses: see Session 2 (now status-colored dots, no pins).
 - Pulsing location dot + compass cone (`startCompass`, iOS permission on Get Started / locate tap). Untested on phone.
 - Street progress chip under top bar (`updateStreet`: nearest named road, houses within 32 m of it and 230 m of you).
 - Nearby warning banner, undo toasts, backup/restore JSON, CSV export, onboarding, update banner, full-screen fix
   for iPhone standalone (`--H` = screen.height), offline service worker.
 - "Card Left Here" GPS button was REMOVED at owner's request (code kept as unused `dropHere`).
 
-## NEXT — owner approved ("go"), not started (medium effort)
-1. Satellite/Hybrid: remove railroad markings → drop Esri `Reference/World_Transportation` raster overlay and instead
-   add our own vector roads + street-name labels from `cdomt` (transportation / transportation_name, no rail class).
-2. Marked houses: replace number-pill pins with plain dots the same size as green dots, colored by status
-   (Card left blue #2563eb, Talked amber, Booked green, Skip gray). Simplest: a geojson circle layer `cd-done`
-   in withOverlay (data from houses), keep tap → openHouse via queryRenderedFeatures. Green "not hit" dots
-   should then probably be a distinct green from Booked (consider making Booked a darker green or purple).
-3. Top stats bar, inspired by owner's two AI mockups (dark UI, logo + "thedetailboyz916 / Mobile Detailing",
-   row of stat cards): Cards placed, Talked to, Clients booked (+ % conversion), Revenue; range picker
-   Today / 7d / 30d / All time; small map legend (Not hit / Card left / Talked / Booked).
-   Revenue needs a "$ amount" field on the sheet when Booked (store `h.amount`); show avg ticket.
-   Add "Expected clients" estimate (cards × real conversion rate) on Stats tab. No fake numbers.
-   Keep it fitting on phone above the map (collapsible or compact horizontal scroll cards).
+## Session 2 (v1.7, done + live, NOT phone-tested yet)
+- Satellite/Hybrid = Esri photo + our own vector roads/labels (`satStyle(full)`), no Esri transportation overlay → no rail.
+- Marked houses = geojson circle layer `cd-done` (same size as green dots, status color). DOM pins removed;
+  map click checks `cd-done` first → openHouse. Booked color changed to purple #9333ea.
+- Top bar: stat cards (Cards / Talked / Clients+% / Revenue+avg), range picker Today/7d/30d/All
+  (`settings.range`), collapse arrow (`settings.statsMin`), legend row. `calc(r)` does the math;
+  `--tbH` CSS var pushes street chip/near banner below the bar.
+- Booked → `askAmount(h)` sheet with $ box; booked houses show "Job amount" field. Stored as `h.amount`
+  (kept in backup restore + CSV). Stats tab: Revenue card + Expected clients (open cards × real booking rate,
+  needs ≥10 cards and ≥1 booking, else shows what's missing).
+- Slow Auto map fix (owner report): map starts with an empty style (no more loading Classic then swapping),
+  preconnect to tiles, SW tile cache now a fixed `carddrop-tiles` name (was wiped every update), trim
+  throttled, `/planet` + styles network-first; night side streets brighter/wider at mid zoom, buildings from z13.
+- Preview gotcha: when the preview pane is hidden, requestAnimationFrame stalls and the map never loads.
+  For testing, override rAF with setTimeout in the page.
+
+## NEXT
+- Owner to test v1.7 on phone (load speed on Auto, $ box, stats bar fit, compass still untested).
 
 ## Owner rules (also in ~/.claude/CLAUDE.md)
 - Before each task: one line effort level (lowest that works), then wait for "go".
