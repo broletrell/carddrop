@@ -111,6 +111,7 @@ body.selecting .mlegend,body.selecting .street,body.selecting .near,body.selecti
 .street .bar i{display:block;height:100%;background:linear-gradient(90deg,#16a34a,#22c55e);border-radius:3px;transition:width .4s}
 body.night .street{background:rgba(15,23,42,.88);color:#e2e8f0}body.night .street .bar{background:#1e293b}body.night .street small{color:#94a3b8}
 body.night .mapbtns{background:rgba(15,23,42,.82)}body.night .rbtn{color:#e2e8f0}body.night .rbtn+.rbtn{border-color:rgba(255,255,255,.12)}
+.me-acc{width:0;height:0;border-radius:50%;background:rgba(37,99,235,.12);border:1.5px solid rgba(37,99,235,.35);opacity:0;transition:opacity .4s}
 .me{position:relative;width:20px;height:20px;border-radius:50%;background:#2563eb;border:3px solid #fff;box-shadow:0 0 0 6px rgba(37,99,235,.25),0 2px 6px rgba(0,0,0,.3)}
 .tmp{width:34px;height:34px;border-radius:50%;background:rgba(15,23,42,.85);border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);animation:pulse 1.2s infinite}
 @keyframes pulse{50%{transform:scale(1.15)}}
@@ -411,6 +412,7 @@ body:not(.on-map) .toast{bottom:calc(var(--tab) + var(--sab) + 14px)}
 </div>
 
 <script src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/pmtiles@3.2.1/dist/pmtiles.js"></script>
 <script>
 /* iPhone home-screen apps report a short screen; size to the real screen. */
 (function(){function fit(){var sa=window.matchMedia("(display-mode: standalone)").matches||navigator.standalone;
@@ -541,6 +543,8 @@ function resolveLayer(k){if(k!=="auto")return k;const c=me||map.getCenter();retu
 function setLayer(k){if(!LAYERS[k])k="auto";const real=resolveLayer(k);
   if(curStyle!==real){curStyle=real;map.setStyle(LAYERS[real].style,{diff:false,transformStyle:(prev,next)=>withOverlay(next)})}
   settings.layer=k;saveSettings();$("#btnLayer").classList.toggle("on",k!=="auto");document.body.classList.toggle("night",real==="night")}
+/* house outlines (Overture) ready from the start when pmtiles loaded, so the map is built once instead of twice */
+if(typeof pmtiles!=="undefined"){try{maplibregl.addProtocol("pmtiles",new pmtiles.Protocol().tile);ovReady=true;map.once("idle",()=>setTimeout(ovCheckRelease,3000))}catch(e){}}
 setLayer(settings.layer);
 setInterval(()=>{if(settings.layer==="auto")setLayer("auto")},300000);
 $("#btnLayer").onclick=()=>{haptic();sheetOpen(`<div class="sh-addr">Map style</div><div class="card" style="margin-top:12px">${Object.entries(LAYERS).map(([k,x])=>`<button class="row" data-ly="${k}"><div class="m"><div class="a">${x.name}</div><div class="s">${x.sub}</div></div>${settings.layer===k?'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5 9-10"/></svg>':""}</button>`).join("")}</div>`);
@@ -664,16 +668,37 @@ function renderMarkers(){const s=map.getSource&&map.getSource("cd-done");if(s)s.
 let meMarker=null,meCircle=null,watchId=null,follow=!!settings.follow,firstFix=true;
 function startGPS(){
   if(!("geolocation" in navigator)){toast("This phone can't share location");return}
-  if(watchId!=null)return;
-  watchId=navigator.geolocation.watchPosition(onPos,onPosErr,{enableHighAccuracy:true,maximumAge:3000,timeout:20000});
+  if(watchId!=null)return;gpsStart=Date.now();
+  // quick rough fix first (shows you right away), then sharp GPS fixes take over
+  try{navigator.geolocation.getCurrentPosition(onPos,()=>{},{enableHighAccuracy:false,maximumAge:120000,timeout:4000})}catch(e){}
+  watchId=navigator.geolocation.watchPosition(onPos,onPosErr,{enableHighAccuracy:true,maximumAge:1000,timeout:20000});
 }
+/* smooth GPS: each fix is weighted by how sure the phone is (its accuracy), so one rough reading
+   can't yank the dot away and standing still doesn't wobble. Moving lets new fixes win faster. */
+let kf=null,gpsStart=0,badFixes=0,preciseTold=false;
+function smoothFix(c,t){
+  const acc=Math.max(3,c.accuracy||50);
+  if(!kf||t-kf.t>90000){kf={lat:c.latitude,lng:c.longitude,v:acc*acc,t};return}
+  const dt=Math.max(0,(t-kf.t)/1000),spd=c.speed>0?c.speed:0,q=Math.max(1.5,spd*1.5);
+  const vv=kf.v+q*q*dt,k=vv/(vv+acc*acc);
+  kf={lat:kf.lat+k*(c.latitude-kf.lat),lng:kf.lng+k*(c.longitude-kf.lng),v:(1-k)*vv,t};
+}
+function accPx(){if(!me)return 0;return 2*me.acc/(78271.517*Math.cos(me.lat*Math.PI/180)/Math.pow(2,map.getZoom()))}
+function drawAcc(){const el=document.getElementById("meAcc");if(!el||!me)return;const d=Math.min(accPx(),900);
+  el.style.width=el.style.height=d+"px";el.style.opacity=me.acc>12&&d>26?1:0}
+map.on("zoom",drawAcc);
 function onPos(p){
-  me={lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy,t:Date.now()};
-  if(!meMarker){meMarker=mk('<div style="pointer-events:none"><div class="me-wrap"><svg class="me-cone" id="meCone" viewBox="0 0 90 90"><defs><radialGradient id="cg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#2563eb" stop-opacity=".55"/><stop offset="1" stop-color="#2563eb" stop-opacity="0"/></radialGradient></defs><path d="M45 45 L28 3 A44 44 0 0 1 62 3 Z" fill="url(#cg)"/></svg><div class="me-pulse"></div><div class="me"></div></div></div>',me.lat,me.lng);meMarker.getElement().style.zIndex=5}
+  const c=p.coords;smoothFix(c,p.timestamp||Date.now());
+  me={lat:kf.lat,lng:kf.lng,acc:Math.sqrt(kf.v),t:Date.now()};
+  // iPhone "Precise Location" off = fixes 1+ km off. Tell the owner once.
+  if(c.accuracy>500&&Date.now()-gpsStart>15000){if(++badFixes>=3&&!preciseTold){preciseTold=true;toast("Location is rough. Turn on Precise Location: Settings › Privacy › Location Services › Safari Websites.",null,7000)}}else if(c.accuracy<100)badFixes=0;
+  if(!meMarker){meMarker=mk('<div style="pointer-events:none"><div class="me-wrap"><div class="me-acc" id="meAcc"></div><svg class="me-cone" id="meCone" viewBox="0 0 90 90"><defs><radialGradient id="cg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#2563eb" stop-opacity=".55"/><stop offset="1" stop-color="#2563eb" stop-opacity="0"/></radialGradient></defs><path d="M45 45 L28 3 A44 44 0 0 1 62 3 Z" fill="url(#cg)"/></svg><div class="me-pulse"></div><div class="me"></div></div></div>',me.lat,me.lng);meMarker.getElement().style.zIndex=5}
   else meMarker.setLngLat([me.lng,me.lat]);
-  if(p.coords.heading!=null&&!isNaN(p.coords.heading)&&p.coords.speed>0.7)setHeading(p.coords.heading);
+  drawAcc();
+  if(c.heading!=null&&!isNaN(c.heading)&&c.speed>0.7)setHeading(c.heading);
   updateStreet();
-  if(firstFix){firstFix=false;if(!settings.lastView||settings.lastView.z<15||locateRequested)go(me.lat,me.lng,18);locateRequested=false}
+  // first time: wait (up to 4 s) for a sharp fix before zooming in on you
+  if(firstFix){if(me.acc<=60||Date.now()-gpsStart>4000){firstFix=false;if(!settings.lastView||settings.lastView.z<15||locateRequested)go(me.lat,me.lng,me.acc<=60?18:16);locateRequested=false}}
   else if(follow||locateRequested){pan(me.lat,me.lng);locateRequested=false}
   checkNear();
 }
@@ -1268,7 +1293,7 @@ setInterval(()=>{checkNear();if(curTab==="list")renderList()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderAll()}});
 
 /* ---------- offline + updates ---------- */
-const APP_VERSION="1.9.1";
+const APP_VERSION="1.9.2";
 $("#verLbl").textContent="Version "+APP_VERSION;
 let swReg=null;
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").then(r=>swReg=r).catch(()=>{});
