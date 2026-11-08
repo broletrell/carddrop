@@ -1,5 +1,5 @@
 # Card Drop — status (read this first)
-**Updated:** 2026-11-08 session 4. LIVE **v2.2.5**. Full record: `HISTORY.md` (grep only). Old handoffs: `handoffs/`.
+**Updated:** 2026-11-08 session 4. LIVE **v2.2.6**. Full record: `HISTORY.md` (grep only). Old handoffs: `handoffs/`.
 
 ## Basics
 - Phone PWA for Trell's detailing business: mark houses where cards were left. Owner on iPhone. LIVE
@@ -7,7 +7,7 @@
 - One `index.html` (vanilla JS, MapLibre 5.6.1, pmtiles 3.2.1), `sw.js`, `version.json`. Data: `carddrop.v1` houses,
   `carddrop.biz.v1` {buys,jobs}, `carddrop.settings.v1` (per phone), `carddrop.sync.v1` (shared-map state).
 - Sync server: `../carddrop-sync/` (Worker `carddrop-sync` + D1 `carddrop-sync`, local git only). README there.
-- Release: bump `APP_VERSION` + `version.json` + `CACHE` in sw.js (now carddrop-v25), commit, push, poll version.json.
+- Release: bump `APP_VERSION` + `version.json` + `CACHE` in sw.js (now carddrop-v26), commit, push, poll version.json.
 - Look: dark navy theme = "app theme v2" block at END of <style>. Never use var(--ink) as a background.
 
 ## Testing
@@ -55,6 +55,12 @@
 - Field test: owner saw partner ~150 m away while side by side. D1 presence: only partner sharing, acc 3 m → owner's own GPS likely the rough one
   (owner's dot had big accuracy glow; owner not sharing). Added partner accuracy circle + "rough spot" label (acc>30 m).
   Precise-Location toast only fires at >500 m.
+
+## Session 4g (v2.2.6)
+- Only GPS fixes with raw accuracy ≤30 m are shared (GOOD_ACC). Orange "Finding GPS… off by X ft" pill (#gpsWarn) after 4 s of rough fixes.
+- Presence now carries sp (speed) + cr (GPS course); partner dot extrapolates along cr up to 6 s, redrawn every 1 s (smooth glide).
+- Sync every 2–3 s while sharing or partner live (1 s ticker: tick%5 in {0,2}), else 5 s. Presence resend: moved >2 m / 10 s / turned.
+- Test gotcha: navigating away from the app saves its old sync state on hide — set localStorage from another page (e.g. /version.json).
 
 ## Open / unverified
 - Nothing phone-tested by owner yet (multi-select, fast start, shared map, marker). Test teams deleted from D1 (0 teams).

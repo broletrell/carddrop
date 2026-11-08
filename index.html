@@ -424,6 +424,7 @@ html,body{background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialias
 .peer.stale{opacity:.6}
 .peer.stale .pdot{background:#94a3b8;box-shadow:0 2px 6px rgba(0,0,0,.3)}
 .peer.stale .pname{background:#64748b}
+.gpswarn{bottom:auto;top:calc(env(safe-area-inset-top) + 64px);background:rgba(180,83,9,.92)!important;color:#fff}
 </style>
 </head>
 <body class="on-map">
@@ -449,6 +450,7 @@ html,body{background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialias
       <div class="selmode" id="selMode"><button data-m="tap" class="on">Tap to pick</button><button data-m="swipe">Swipe to pick</button></div>
       <div class="selbtns"><button data-bst="left" style="--c:#2563eb">Card left</button><button data-bst="talked" style="--c:#d97706">Talked</button><button data-bst="skip" style="--c:#64748b">Skip</button></div>
     </div>
+    <div class="hint gpswarn hidden" id="gpsWarn"></div>
     <div class="hint" id="hint">Tap a green dot or any house to mark it</div>
   </section>
 
@@ -926,6 +928,12 @@ function startGPS(){
 /* smooth GPS: each fix is weighted by how sure the phone is (its accuracy), so one rough reading
    can't yank the dot away and standing still doesn't wobble. Moving lets new fixes win faster. */
 let kf=null,gpsStart=0,badFixes=0,preciseTold=false;
+// a fix is "good" when the phone says it's within 30 m; rough fixes aren't shared with your partner
+const GOOD_ACC=30;let roughSince=0;
+function gpsWarnUpdate(){const el=document.getElementById("gpsWarn");if(!el)return;
+  const show=me&&roughSince&&Date.now()-roughSince>4000&&Date.now()-me.t<60000;
+  el.classList.toggle("hidden",!show);if(show)el.textContent="Finding GPS… your dot may be off by "+(me.raw>=1000?(me.raw/1609).toFixed(1)+" mi":Math.round(me.raw*3.281)+" ft")}
+setInterval(gpsWarnUpdate,2000);
 function smoothFix(c,t){
   const acc=Math.max(3,c.accuracy||50);
   if(!kf||t-kf.t>90000){kf={lat:c.latitude,lng:c.longitude,v:acc*acc,t};return}
@@ -944,7 +952,8 @@ function drawAcc(){const el=document.getElementById("meAcc");if(!el||!me)return;
 map.on("zoom",drawAcc);
 function onPos(p){
   const c=p.coords;smoothFix(c,p.timestamp||Date.now());
-  me={lat:kf.lat,lng:kf.lng,acc:Math.sqrt(kf.v),t:Date.now()};
+  me={lat:kf.lat,lng:kf.lng,acc:Math.sqrt(kf.v),raw:c.accuracy||999,sp:c.speed>0?c.speed:0,cr:c.heading!=null&&!isNaN(c.heading)&&c.speed>0.7?c.heading:null,t:Date.now()};
+  if(me.raw<=GOOD_ACC)roughSince=0;else if(!roughSince)roughSince=Date.now();gpsWarnUpdate();
   // iPhone "Precise Location" off = fixes 1+ km off. Tell the owner once.
   if(c.accuracy>500&&Date.now()-gpsStart>15000){if(++badFixes>=3&&!preciseTold){preciseTold=true;toast("Location is rough. Turn on Precise Location: Settings › Privacy › Location Services › Safari Websites.",null,7000)}}else if(c.accuracy<100)badFixes=0;
   if(!meMarker){meMarker=mk('<div style="pointer-events:none"><div class="me-wrap"><div class="me-acc" id="meAcc"></div><svg class="me-cone" id="meCone" viewBox="0 0 90 90"><defs><radialGradient id="cg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#2563eb" stop-opacity=".55"/><stop offset="1" stop-color="#2563eb" stop-opacity="0"/></radialGradient></defs><path d="M45 45 L28 3 A44 44 0 0 1 62 3 Z" fill="url(#cg)"/></svg><div class="me-pulse"></div><div class="me"></div></div></div>',me.lat,me.lng);meMarker.getElement().style.zIndex=5}
@@ -1581,14 +1590,14 @@ let presSent=null;const peerMk={};
 const peerAgo=t=>{const s=Math.round((Date.now()-t)/1000);return s<60?s+" sec ago":ago(t)};const STALE=45000,PEER_KEEP=12*3600000;
 function myDev(){if(!sync.dev){sync.dev=(uid()+uid()).replace(/[^a-z0-9]/gi,"").slice(0,24);saveSync()}return sync.dev}
 function presBody(){const dev=myDev();
-  if(settings.shareLoc&&me&&Date.now()-me.t<60000){
+  if(settings.shareLoc&&me&&Date.now()-me.t<60000&&me.raw<=GOOD_ACC){
     const turned=headSm!=null&&presSent&&presSent.hd!=null&&Math.abs(((headSm-presSent.hd)%360+540)%360-180)>20;
-    if(!presSent||dist(presSent.lat,presSent.lng,me.lat,me.lng)>2||Date.now()-presSent.t>15000||turned)
-      return {dev,me:{name:settings.myName||"Partner",lat:+me.lat.toFixed(6),lng:+me.lng.toFixed(6),acc:Math.round(me.acc),hd:headSm==null?null:Math.round(headSm)}}}
+    if(!presSent||dist(presSent.lat,presSent.lng,me.lat,me.lng)>2||Date.now()-presSent.t>10000||turned)
+      return {dev,me:{name:settings.myName||"Partner",lat:+me.lat.toFixed(6),lng:+me.lng.toFixed(6),acc:Math.round(Math.max(me.acc,me.raw*0.5)),hd:headSm==null?null:Math.round(headSm),sp:+me.sp.toFixed(1),cr:me.cr==null?null:Math.round(me.cr)}}}
   if(sync.locOff)return {dev,off:1};
   return {dev}}
 function setPeers(list){const now=Date.now(),o={};
-  for(const p of list)if(p&&typeof p.dev==="string"&&isFinite(p.lat)&&isFinite(p.lng))o[p.dev]={name:String(p.name||"Partner").slice(0,24),lat:+p.lat,lng:+p.lng,acc:p.acc==null?null:+p.acc,hd:p.hd==null?null:+p.hd,seen:now-Math.max(0,+p.age||0)};
+  for(const p of list)if(p&&typeof p.dev==="string"&&isFinite(p.lat)&&isFinite(p.lng))o[p.dev]={name:String(p.name||"Partner").slice(0,24),lat:+p.lat,lng:+p.lng,acc:p.acc==null?null:+p.acc,hd:p.hd==null?null:+p.hd,sp:+p.sp||0,cr:p.cr==null?null:+p.cr,seen:now-Math.max(0,+p.age||0)};
   sync.peers=o;renderPeers()}
 function renderPeers(){const ps=sync&&sync.peers||{},now=Date.now();
   for(const dev in peerMk)if(!ps[dev]||now-ps[dev].seen>PEER_KEEP){peerMk[dev].m.remove();delete peerMk[dev]}
@@ -1600,7 +1609,9 @@ function renderPeers(){const ps=sync&&sync.peers||{},now=Date.now();
         toast(q.name+(Date.now()-q.seen>STALE?" · last seen "+peerAgo(q.seen):" · live now"),null,2000)};
       const m=new maplibregl.Marker({element:el,anchor:"center"}).setLngLat([p.lng,p.lat]).addTo(map);m.getElement().style.zIndex=4;
       k=peerMk[dev]={m,el,lat:p.lat,lng:p.lng}}
-    else if(k.lat!==p.lat||k.lng!==p.lng){glideMk(k.m,p.lat,p.lng);k.lat=p.lat;k.lng=p.lng}
+    let plat=p.lat,plng=p.lng;
+    if(!stale&&p.sp>0.5&&p.cr!=null){const m=p.sp*Math.min(age,6000)/1000,r=p.cr*Math.PI/180;plat+=m*Math.cos(r)/111320;plng+=m*Math.sin(r)/(111320*Math.cos(p.lat*Math.PI/180))}
+    if(k.lat!==plat||k.lng!==plng){glideMk(k.m,plat,plng);k.lat=plat;k.lng=plng}
     k.el.classList.toggle("stale",stale);
     const rough=!stale&&p.acc>30;
     k.el.querySelector(".pname").textContent=p.name+(stale?" · "+peerAgo(p.seen):rough?" · rough spot":"");
@@ -1632,7 +1643,10 @@ if(sync&&sync.peers)setTimeout(renderPeers,800); // last known partner spots, ev
 if(sync)syncSoon(600);
 document.addEventListener("visibilitychange",()=>{if(!sync)return;if(!document.hidden)syncSoon(300);else if(Object.keys(sync.out).length)syncNow()});
 window.addEventListener("online",()=>{if(sync)syncSoon(300)});
-setInterval(()=>{if(sync&&!document.hidden&&!syncBusy&&navigator.onLine!==false)syncNow();if(!document.hidden)renderPeers()},5000);
+let tick=0;const livePeer=()=>sync&&sync.peers&&Object.values(sync.peers).some(p=>Date.now()-p.seen<STALE);
+setInterval(()=>{tick++;if(document.hidden)return;
+  if(sync&&!syncBusy&&navigator.onLine!==false&&(tick%5===0||(tick%5===2&&(settings.shareLoc||livePeer()))))syncNow(); // every 2-3 s when live, else 5 s
+  renderPeers()},1000);
 $("#setBiz").addEventListener("input",e=>{settings.biz=e.target.value.trim();saveSettings()});
 $("#setNear").onchange=e=>{settings.near=e.target.checked;saveSettings();checkNear();toast(settings.near?"Nearby warnings on":"Nearby warnings off",null,1500)};
 $("#setFollow").onchange=e=>{settings.follow=follow=e.target.checked;saveSettings();if(follow){startGPS();if(me)pan(me.lat,me.lng)}};
@@ -1703,7 +1717,7 @@ setInterval(()=>{checkNear();if(curTab==="list")renderList()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderAll()}});
 
 /* ---------- offline + updates ---------- */
-const APP_VERSION="2.2.5";
+const APP_VERSION="2.2.6";
 $("#verLbl").textContent="Version "+APP_VERSION;
 let swReg=null;
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").then(r=>swReg=r).catch(()=>{});
