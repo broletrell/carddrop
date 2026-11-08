@@ -408,6 +408,10 @@ html,body{background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialias
 .sbtn,.ghost,.addb,.fchip,.chips button,.selbtns button,.seg button,.selmode button{transition:transform .12s ease,background .15s,color .15s}
 .fchip:active,.chips button:active,.seg button:active{transform:scale(.96)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.lastmk{background:#fff;color:#0b1226;font:700 11.5px/1 -apple-system,system-ui,sans-serif;padding:6px 9px;border-radius:10px;white-space:nowrap;
+  box-shadow:0 4px 14px rgba(0,0,0,.45);position:relative;cursor:pointer}
+.lastmk:after{content:"";position:absolute;left:50%;bottom:-5px;margin-left:-5px;border:5px solid transparent;border-bottom:0;border-top-color:#fff}
+.set-note{color:var(--ink3);font-size:12px;line-height:1.4;margin:8px 8px 0}
 </style>
 </head>
 <body class="on-map">
@@ -477,6 +481,10 @@ html,body{background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialias
           <div class="m"><div class="a">Follow my location</div><div class="s">Keep the map centered on you</div></div>
           <label class="switch"><input type="checkbox" id="setFollow"><span></span></label></div>
       </div>
+
+      <div class="group-h">Shared map</div>
+      <div class="card" id="syncCard"></div>
+      <div class="set-note" id="syncNote"></div>
 
       <div class="group-h">Your data</div>
       <div class="card">
@@ -557,7 +565,7 @@ const KEY="carddrop.v1", SKEY="carddrop.settings.v1";
 
 /* ---------- storage ---------- */
 function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
-function persist(){try{localStorage.setItem(KEY,JSON.stringify(houses))}catch(e){toast("Couldn't save. Phone storage may be full.")}}
+function persist(){trackLast();syncMark(["h"]);try{localStorage.setItem(KEY,JSON.stringify(houses))}catch(e){toast("Couldn't save. Phone storage may be full.")}}
 function saveSettings(){try{localStorage.setItem(SKEY,JSON.stringify(settings))}catch(e){}}
 let houses=load(KEY,[]); if(!Array.isArray(houses))houses=[];
 let settings=Object.assign({biz:"",near:true,radius:25,follow:false,layer:"auto",onboarded:false,lastBackup:0,lastView:null,sRange:"30",cRange:"all",oRange:"all",estDays:14},load(SKEY,{}));
@@ -565,7 +573,72 @@ let settings=Object.assign({biz:"",near:true,radius:25,follow:false,layer:"auto"
 const BKEY="carddrop.biz.v1";
 let biz=load(BKEY,{});if(!biz||typeof biz!=="object")biz={};
 if(!Array.isArray(biz.buys))biz.buys=[];if(!Array.isArray(biz.jobs))biz.jobs=[];
-function persistBiz(){try{localStorage.setItem(BKEY,JSON.stringify(biz))}catch(e){toast("Couldn't save. Phone storage may be full.")}}
+function persistBiz(){syncMark(["b","j"]);try{localStorage.setItem(BKEY,JSON.stringify(biz))}catch(e){toast("Couldn't save. Phone storage may be full.")}}
+/* ---------- "you left off here": last house added or changed on THIS phone ----------
+   Only status, notes, amount, history or position count, so background address lookups don't move it. */
+const hKey=h=>h.status+"|"+(h.notes||"")+"|"+(h.amount||0)+"|"+(h.history?h.history.length:0)+"|"+h.lat+"|"+h.lng;
+const lastSig=new Map(houses.map(h=>[h.id,hKey(h)]));
+if(!settings.lastHouse&&houses.length)settings.lastHouse=houses.reduce((a,b)=>(b.updated||0)>(a.updated||0)?b:a).id;
+function trackLast(){let last=null,n=0;const ids=new Set();
+  for(const h of houses){ids.add(h.id);const k=hKey(h);if(lastSig.get(h.id)!==k){lastSig.set(h.id,k);last=h;n++}}
+  for(const id of [...lastSig.keys()])if(!ids.has(id))lastSig.delete(id);
+  if(last&&n<=60&&settings.lastHouse!==last.id){settings.lastHouse=last.id;saveSettings()}} // restores/big imports don't count
+/* ---------- shared map: sync houses, card buys and jobs with a partner ----------
+   Each saved record gets mt (last-changed time). On every save we compare a fingerprint of each record
+   with the last one we knew, queue anything new/changed/deleted, and send it. Newest mt wins per record. */
+const SYNC_URL="https://carddrop-sync.saferoute.workers.dev",YKEY="carddrop.sync.v1";
+let sync=load(YKEY,null);if(!sync||!sync.code)sync=null;
+function saveSync(){try{sync?localStorage.setItem(YKEY,JSON.stringify(sync)):localStorage.removeItem(YKEY)}catch(e){}}
+function hsig(o){const s=JSON.stringify(o,(k,v)=>k==="mt"?undefined:v);let a=0xdeadbeef,b=0x41c6ce57;
+  for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);a=Math.imul(a^c,2654435761);b=Math.imul(b^c,1597334677)}
+  a=Math.imul(a^(a>>>16),2246822507)^Math.imul(b^(b>>>13),3266489909);b=Math.imul(b^(b>>>16),2246822507)^Math.imul(a^(a>>>13),3266489909);
+  return (4294967296*(2097151&b)+(a>>>0)).toString(36)}
+const SYNC_LISTS={h:()=>houses,b:()=>biz.buys,j:()=>biz.jobs};
+function syncMark(kinds){if(!sync)return;const now=Date.now();let n=0;
+  for(const k of kinds){const seen=new Set();
+    for(const r of SYNC_LISTS[k]()){if(!r||!r.id)continue;const key=k+":"+r.id;seen.add(key);const s=hsig(r);
+      if(sync.snap[key]!==s){r.mt=Math.max(now,(r.mt||0)+1);sync.snap[key]=s;sync.out[key]={k,id:r.id,mt:r.mt,d:r};n++}}
+    for(const key in sync.snap)if(key[0]===k&&key[1]===":"&&!seen.has(key)){delete sync.snap[key];sync.out[key]={k,id:key.slice(2),mt:now,del:1};n++}}
+  if(n){saveSync();syncSoon(1500)}}
+function syncClean(k,d){if(!d||typeof d!=="object"||!d.id)return null;
+  const S=(v,n)=>String(v==null?"":v).slice(0,n||200),N=v=>{const x=+v;return isFinite(x)?x:0},P=v=>{const x=+v;return isFinite(x)&&x>0?x:0};
+  if(k==="b")return {id:S(d.id,64),t:N(d.t),qty:Math.round(P(d.qty)),cost:P(d.cost)};
+  if(k==="j")return {id:S(d.id,64),t:N(d.t),amount:P(d.amount),source:S(d.source||"Other",30),note:S(d.note,60)};
+  if(typeof d.lat!=="number"||typeof d.lng!=="number"||!isFinite(d.lat)||!isFinite(d.lng))return null;
+  const o={id:S(d.id,64),lat:d.lat,lng:d.lng,status:STATUS[d.status]?d.status:"left",addr:S(d.addr),num:S(d.num,20),street:S(d.street),city:S(d.city),
+    notes:S(d.notes,2000),created:N(d.created)||Date.now()};
+  o.updated=N(d.updated)||o.created;if(d.amount!=null)o.amount=P(d.amount);if(d.noAddr)o.noAddr=true;
+  o.history=Array.isArray(d.history)?d.history.filter(x=>x&&STATUS[x.s]).slice(-300).map(x=>({s:x.s,t:N(x.t)})):[];
+  if(!o.history.length)o.history=[{s:o.status,t:o.updated}];
+  return o}
+function applyRemote(list){if(!sync||!list||!list.length)return 0;let n=0,h=0,b=0;
+  for(const c of list){const get=SYNC_LISTS[c.k];if(!get||typeof c.id!=="string")continue;const arr=get(),key=c.k+":"+c.id;
+    const i=arr.findIndex(x=>x.id===c.id),cur=i>=0?arr[i]:null,pend=sync.out[key];
+    if(!(c.mt>Math.max(cur&&cur.mt||0,pend&&pend.mt||0)))continue; // ours is newer (or the same edit)
+    if(c.del){delete sync.out[key];delete sync.snap[key];if(i<0)continue;arr.splice(i,1)}
+    else{const d=syncClean(c.k,c.d);if(!d||d.id!==c.id)continue;d.mt=c.mt;delete sync.out[key];
+      if(cur){for(const p in cur)if(!(p in d))delete cur[p];Object.assign(cur,d)}else arr.push(d);sync.snap[key]=hsig(cur||d);if(c.k==="h")lastSig.set(c.id,hKey(cur||d))}
+    n++;if(c.k==="h")h++;else b++}
+  if(h)try{localStorage.setItem(KEY,JSON.stringify(houses))}catch(e){}
+  if(b)try{localStorage.setItem(BKEY,JSON.stringify(biz))}catch(e){}
+  return n}
+let syncBusy=false,syncTimer=null,syncAgain=false;
+function syncSoon(ms){clearTimeout(syncTimer);syncTimer=setTimeout(syncNow,ms||0)}
+async function syncPost(path,body){const r=await fetch(SYNC_URL+path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  let j={};try{j=await r.json()}catch(e){}return {status:r.status,ok:r.ok,j}}
+async function syncNow(){if(!sync)return;if(syncBusy){syncAgain=true;return}syncBusy=true;let got=0;
+  try{for(let loop=0;loop<30&&sync;loop++){
+      const sent=Object.keys(sync.out).slice(0,400).map(k=>({...sync.out[k]}));
+      const r=await syncPost("/sync",{code:sync.code,since:sync.seq||0,changes:sent});
+      if(!sync)break;
+      if(r.status===404){sync.err="gone";break}
+      if(!r.ok||!Array.isArray(r.j.changes))throw 0;
+      for(const c of sent){const k=c.k+":"+c.id,o=sync.out[k];if(o&&o.mt===c.mt)delete sync.out[k]}
+      got+=applyRemote(r.j.changes);sync.seq=r.j.seq;sync.last=Date.now();sync.err="";
+      if(!r.j.more&&!Object.keys(sync.out).length)break}
+  }catch(e){if(sync)sync.err="offline"}
+  finally{syncBusy=false;saveSync();if(got)renderAll();if(curTab==="set")renderSyncCard();
+    if(syncAgain){syncAgain=false;syncSoon(300)}}}
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 
 /* ---------- helpers ---------- */
@@ -786,7 +859,14 @@ function updateStreet(){
 
 /* marked houses: one dot each, colored by status */
 function doneFC(){return {type:"FeatureCollection",features:houses.map(h=>({type:"Feature",geometry:{type:"Point",coordinates:[h.lng,h.lat]},properties:{id:h.id,c:(STATUS[h.status]||STATUS.left).color}}))}}
-function renderMarkers(){const s=map.getSource&&map.getSource("cd-done");if(s)s.setData(doneFC())}
+function renderMarkers(){const s=map.getSource&&map.getSource("cd-done");if(s)s.setData(doneFC());renderLastMarker()}
+let lastMk=null;
+function renderLastMarker(){const h=settings.lastHouse&&houses.find(x=>x.id===settings.lastHouse);
+  if(!h){if(lastMk){lastMk.remove();lastMk=null}return}
+  if(!lastMk){const el=document.createElement("button");el.className="lastmk";el.innerHTML="You left off here";
+    el.onclick=e=>{e.stopPropagation();const id=el.dataset.id;if(id)openHouse(id)};
+    lastMk=new maplibregl.Marker({element:el,anchor:"bottom",offset:[0,-11]}).setLngLat([h.lng,h.lat]).addTo(map)}
+  lastMk.getElement().dataset.id=h.id;lastMk.setLngLat([h.lng,h.lat])}
 
 /* ---------- GPS ---------- */
 let meMarker=null,meCircle=null,watchId=null,follow=!!settings.follow,firstFix=true;
@@ -956,10 +1036,10 @@ function pickAt(pt,r){const box=[[pt.x-r,pt.y-r],[pt.x+r,pt.y+r]];
   if(f){const[lng,lat]=f.geometry.coordinates;return ["p:"+lng.toFixed(6)+","+lat.toFixed(6),{lat,lng}]}
   return null}
 function startSelect(){if(selecting)return;selecting=true;picks.clear();sheetClose();document.body.classList.add("selecting");
-  $("#selBar").classList.remove("hidden");$("#selAct").classList.remove("hidden");$("#btnSelect").classList.add("on");
+  $("#selBar").classList.remove("hidden");$("#selAct").classList.remove("hidden");$("#btnSelect").classList.add("on");placeToast();
   if(map.getZoom()<AVAIL_Z)toast("Zoom in to see the green dots you can pick",null,2500);setSwipe(false);renderPicks()}
 function endSelect(){if(!selecting)return;selecting=false;picks.clear();setSwipe(false);document.body.classList.remove("selecting");
-  $("#selBar").classList.add("hidden");$("#selAct").classList.add("hidden");$("#btnSelect").classList.remove("on");renderPicks()}
+  $("#selBar").classList.add("hidden");$("#selAct").classList.add("hidden");$("#btnSelect").classList.remove("on");placeToast();renderPicks()}
 function setSwipe(on){swipeMode=on;try{on?map.dragPan.disable():map.dragPan.enable()}catch(e){}
   $("#selMode").querySelectorAll("[data-m]").forEach(b=>b.classList.toggle("on",(b.dataset.m==="swipe")===on));if(selecting)renderPicks()}
 $("#btnSelect").onclick=()=>{haptic();selecting?endSelect():startSelect()};
@@ -1076,10 +1156,14 @@ function openHouse(id){
 
 /* ---------- toast & dialog ---------- */
 let toastTimer=null;
+// In multi-select, sit just above the Card left / Talked / Skip bar instead of covering it.
+function placeToast(){let b=14;
+  if(curTab==="map"){const sa=$("#selAct");if(sa&&!sa.classList.contains("hidden"))b=14+sa.offsetHeight+10}
+  $("#toast").style.bottom=`calc(var(--tab) + var(--sab) + ${b}px)`}
 function toast(msg,btn,ms){
   $("#toastT").textContent=msg;const b=$("#toastBtn");
   if(btn){b.textContent=btn;b.classList.remove("hidden")}else b.classList.add("hidden");
-  $("#toast").classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>{$("#toast").classList.remove("show");if(btn)undoFn=null},ms||(btn?6000:2600));
+  placeToast();$("#toast").classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>{$("#toast").classList.remove("show");if(btn)undoFn=null},ms||(btn?6000:2600));
 }
 $("#toastBtn").onclick=()=>{if(undoFn){undoFn();undoFn=null;toast("Undone",null,1400)}};
 function confirmDlg(t,p,ok,red){return new Promise(res=>{
@@ -1092,7 +1176,7 @@ function confirmDlg(t,p,ok,red){return new Promise(res=>{
 /* ---------- tabs ---------- */
 let curTab="map";
 function showTab(t){
-  curTab=t;document.body.classList.toggle("on-map",t==="map");document.body.classList.toggle("on-stats",t==="stats");document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
+  curTab=t;document.body.classList.toggle("on-map",t==="map");placeToast();document.body.classList.toggle("on-stats",t==="stats");document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
   ["map","list","stats","set"].forEach(k=>$("#s-"+k).classList.toggle("hidden",k!==t));
   if(t==="map")setTimeout(()=>{map.resize();streetT=0;updateStreet()},50);else{$("#street").classList.add("hidden");endSelect()}
   if(t==="list")renderList();if(t==="stats")renderStats();if(t==="set")renderSettings();
@@ -1363,7 +1447,65 @@ function renderSettings(){
   $("#setBiz").value=settings.biz;$("#setNear").checked=settings.near;$("#setFollow").checked=settings.follow;
   $("#setRadius").textContent=(RADII.find(r=>r[0]===settings.radius)||[0,ft(settings.radius)+" ft"])[1];
   $("#lastBackup").textContent=settings.lastBackup?"Last backup "+ago(settings.lastBackup):"Never backed up";
+  renderSyncCard();
 }
+/* shared map settings */
+const fmtCode=c=>c.match(/.{1,4}/g).join("-");
+const ICO_SYNC='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M17 20v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2M10 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0M21 20v-2a4 4 0 0 0-3-3.9M16 4.1a3 3 0 0 1 0 5.8"/></svg>';
+const CHEV='<svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 6 6 6-6 6"/></svg>';
+function renderSyncCard(){const c=$("#syncCard");if(!c)return;
+  if(!sync){c.innerHTML=`<button class="row" id="syStart"><div class="ico" style="background:#2563eb">${ICO_SYNC}</div><div class="m"><div class="a">Start a shared map</div><div class="s">You and a partner see the same houses and stats</div></div>${CHEV}</button>
+    <button class="row" id="syJoin"><div class="ico" style="background:#16a34a"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg></div><div class="m"><div class="a">Join with a code</div><div class="s">Your partner gives you the code</div></div>${CHEV}</button>`;
+    $("#syncNote").textContent="Shared: houses, notes, history, card buys and jobs. Not shared: settings and map style.";
+    $("#syStart").onclick=syncStart;$("#syJoin").onclick=syncJoinSheet;return}
+  const pend=Object.keys(sync.out).length;
+  const st=sync.err==="gone"?"Shared map not found. It may have been removed.":syncBusy?"Syncing…":sync.err==="offline"?(pend?`No signal. ${pend} change${pend==1?"":"s"} will send later`:"No signal right now"):sync.last?"Synced "+ago(sync.last)+(pend?` · ${pend} to send`:""):"Not synced yet";
+  c.innerHTML=`<button class="row" id="syCode"><div class="ico" style="background:#2563eb">${ICO_SYNC}</div><div class="m"><div class="a">Team code</div><div class="s">Tap to share with your partner</div></div><span class="val" style="font-variant-numeric:tabular-nums">${fmtCode(sync.code).slice(0,4)}-…</span>${CHEV}</button>
+    <button class="row" id="syNow"><div class="ico" style="background:#16a34a"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/></svg></div><div class="m"><div class="a">Sync now</div><div class="s" id="syStat">${esc(st)}</div></div></button>
+    <button class="row" id="syLeave"><div class="ico" style="background:#dc2626"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></div><div class="m"><div class="a danger">Leave shared map</div></div></button>`;
+  $("#syncNote").textContent="Changes sync automatically when you have signal. If you both change the same house, the newest change wins.";
+  $("#syCode").onclick=syncCodeSheet;$("#syNow").onclick=()=>{haptic();syncNow().then(()=>{if(sync&&!sync.err)toast("Synced",null,1200)})};
+  $("#syLeave").onclick=syncLeave}
+function syncCodeSheet(){if(!sync)return;const pretty=fmtCode(sync.code);
+  sheetOpen(`<div class="sh-addr">Your team code</div><div class="sh-sub">Your partner opens Card Drop → Settings → Join with a code, and types this in.</div>
+    <div style="font:800 26px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:1px;text-align:center;margin:22px 0 6px;user-select:all;-webkit-user-select:all">${pretty}</div>
+    <div class="sh-sub" style="text-align:center">Anyone with this code can see and change your map. Only share it with your partner.</div>
+    <button class="primary" id="syShare">Share code</button>`);
+  $("#syShare").onclick=async()=>{const text=`Join my Card Drop map. Open Card Drop → Settings → Join with a code, and enter: ${pretty}\nApp: https://broletrell.github.io/carddrop/`;
+    try{if(navigator.share){await navigator.share({text});return}}catch(e){if(e&&e.name==="AbortError")return}
+    try{await navigator.clipboard.writeText(text);toast("Code copied")}catch(e){toast("Long-press the code to copy it")}}}
+async function syncStart(){
+  if(!navigator.onLine){toast("Needs signal to start a shared map");return}
+  if(!await confirmDlg("Start a shared map?",`Your ${houses.length} house${houses.length==1?"":"s"}, card buys and jobs will be uploaded so your partner can see and change them. Settings stay on each phone.`,"Start"))return;
+  try{const r=await syncPost("/team/new",{});if(!r.ok||!r.j.code)throw 0;
+    sync={code:r.j.code,seq:0,snap:{},out:{},last:0,err:""};saveSync();syncMark(["h","b","j"]);await syncNow();renderSyncCard();syncCodeSheet();haptic()}
+  catch(e){toast("Couldn't start it. Check your signal and try again.")}}
+function syncJoinSheet(){
+  sheetOpen(`<div class="sh-addr">Join a shared map</div><div class="sh-sub">Type the 16-letter code from your partner's Card Drop (Settings → Team code).</div>
+    <input class="dinput" id="syIn" type="text" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="ABCD-EFGH-JKLM-NPQR" maxlength="24" style="font:700 19px ui-monospace,Menlo,monospace;letter-spacing:1px;text-transform:uppercase">
+    <button class="primary" id="syGo">Join</button>`);
+  setTimeout(()=>{const i=$("#syIn");if(i)i.focus()},300);
+  $("#syGo").onclick=async()=>{const code=$("#syIn").value.toUpperCase().replace(/[^A-Z0-9]/g,"");
+    if(code.length!==16){toast("The code is 16 letters and numbers");return}
+    if(!navigator.onLine){toast("Needs signal to join");return}
+    const have=houses.length+biz.buys.length+biz.jobs.length;
+    if(have&&!await confirmDlg("Join this shared map?",`The ${houses.length} house${houses.length==1?"":"s"} and records on this phone will be added to the shared map.`,"Join"))return;
+    $("#syGo").disabled=true;$("#syGo").textContent="Joining…";
+    try{const r=await syncPost("/sync",{code,since:0,changes:[]});
+      if(r.status===404){toast("No shared map with that code. Check it and try again.");$("#syGo").disabled=false;$("#syGo").textContent="Join";return}
+      if(!r.ok)throw 0;
+      sync={code,seq:0,snap:{},out:{},last:0,err:""};saveSync();await syncNow();syncMark(["h","b","j"]);await syncNow();
+      sheetClose();renderAll();renderSyncCard();haptic();toast(`Joined. ${houses.length} house${houses.length==1?"":"s"} on the shared map.`,null,3000)}
+    catch(e){toast("Couldn't join. Check your signal and try again.");const b=$("#syGo");if(b){b.disabled=false;b.textContent="Join"}}}}
+async function syncLeave(){
+  const pend=sync?Object.keys(sync.out).length:0;
+  if(!await confirmDlg("Leave the shared map?",`Your houses stay on this phone, but changes won't sync with your partner anymore.${pend?` ${pend} change${pend==1?"":"s"} haven't been sent yet.`:""}`,"Leave",true))return;
+  sync=null;saveSync();renderSyncCard();toast("Left the shared map")}
+// sync on open, when coming back to the app, when signal returns, and every 45 s while open
+if(sync)syncSoon(600);
+document.addEventListener("visibilitychange",()=>{if(!sync)return;if(!document.hidden)syncSoon(300);else if(Object.keys(sync.out).length)syncNow()});
+window.addEventListener("online",()=>{if(sync)syncSoon(300)});
+setInterval(()=>{if(sync&&!document.hidden)syncNow()},45000);
 $("#setBiz").addEventListener("input",e=>{settings.biz=e.target.value.trim();saveSettings()});
 $("#setNear").onchange=e=>{settings.near=e.target.checked;saveSettings();checkNear();toast(settings.near?"Nearby warnings on":"Nearby warnings off",null,1500)};
 $("#setFollow").onchange=e=>{settings.follow=follow=e.target.checked;saveSettings();if(follow){startGPS();if(me)pan(me.lat,me.lng)}};
@@ -1408,7 +1550,7 @@ $("#fileIn").onchange=async e=>{
 };
 $("#btnClear").onclick=async()=>{
   if(!houses.length){toast("There are no houses to delete");return}
-  if(!await confirmDlg("Delete all houses?",`This removes all ${houses.length} houses from this phone. Save a backup first if you might want them back.`,"Delete all",true))return;
+  if(!await confirmDlg("Delete all houses?",`This removes all ${houses.length} houses from this phone${sync?" and from your partner's shared map":""}. Save a backup first if you might want them back.`,"Delete all",true))return;
   const old=houses;houses=[];persist();renderAll();undoFn=()=>{houses=old;persist();renderAll()};toast("All houses deleted","Undo",8000);
 };
 $("#btnHelp").onclick=()=>showOnb(true);
@@ -1434,7 +1576,7 @@ setInterval(()=>{checkNear();if(curTab==="list")renderList()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderAll()}});
 
 /* ---------- offline + updates ---------- */
-const APP_VERSION="2.1.0";
+const APP_VERSION="2.2.0";
 $("#verLbl").textContent="Version "+APP_VERSION;
 let swReg=null;
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").then(r=>swReg=r).catch(()=>{});
