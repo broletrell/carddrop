@@ -1,5 +1,5 @@
 // Card Drop offline support: app files load even with no signal.
-const CACHE = "carddrop-v10";
+const CACHE = "carddrop-v11";
 const TILES = "carddrop-tiles"; // kept across app updates
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png",
   "https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css", "https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js"];
@@ -15,6 +15,8 @@ self.addEventListener("fetch", e => {
   const url = new URL(req.url);
   // Address lookups always go to the network.
   if (url.hostname.includes("nominatim") || url.pathname.endsWith("version.json")) return;
+  // Overture house outlines use partial (range) downloads, which can't be cached here.
+  if (url.hostname.includes("overturemaps") || req.headers.has("range")) return;
   // App page: network first so updates show up, cache when offline.
   if (req.mode === "navigate" || url.origin === location.origin) {
     e.respondWith(fetch(req).then(r => { const copy = r.clone(); caches.open(CACHE).then(c => c.put(req, copy)); return r; })

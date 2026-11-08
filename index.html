@@ -411,6 +411,7 @@ function title(h){return h.addr||"Unnamed spot"}
 function nearest(lat,lng,skipId){let best=null,bd=1e9;for(const h of houses){if(h.id===skipId)continue;const d=dist(lat,lng,h.lat,h.lng);if(d<bd){bd=d;best=h}}return best?{h:best,d:bd}:null}
 function haptic(){try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}}
 
+const OV_REL_KEY="carddrop.ovrel";let ovReady=false,ovRel="2026-10-21.0";try{ovRel=localStorage.getItem(OV_REL_KEY)||ovRel}catch(e){}
 let me=null; // my GPS position (declared early: auto map style reads it at startup)
 /* ---------- map ---------- */
 const startView=settings.lastView||{lat:38.58,lng:-121.49,z:12};
@@ -512,6 +513,17 @@ function withOverlay(st){
   st.sources["cd-done"]={type:"geojson",data:doneFC()};
   if(!st.glyphs)st.glyphs="https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf";
   st.layers.push({id:"cd-hn",type:"fill",source:"cdomt","source-layer":"building",minzoom:AVAIL_Z,paint:{"fill-opacity":0}});
+  if(ovReady){
+    st.sources.ov={type:"vector",url:"pmtiles://"+ovUrl(ovRel),attribution:"&copy; Overture Maps"};
+    const P=PAL[curStyle==="night"?"night":"day"],photo=curStyle==="sat"||curStyle==="hybrid";
+    const at=st.layers.findIndex(l=>l.id==="bld");const add=[];
+    if(!photo&&curStyle!=="classic"){
+      add.push({id:"ov-bld",type:"fill",source:"ov","source-layer":"building",minzoom:13,paint:{"fill-color":P.bld,"fill-opacity":["interpolate",["linear"],["zoom"],13,0,14.5,1]}});
+      add.push({id:"ov-bld-line",type:"line",source:"ov","source-layer":"building",minzoom:16,paint:{"line-color":P.bldLine,"line-width":["interpolate",["linear"],["zoom"],16,.5,19,1.4]}});
+    }else if(curStyle==="classic")add.push({id:"ov-bld",type:"fill",source:"ov","source-layer":"building",minzoom:14,paint:{"fill-color":"#dcd6cc","fill-outline-color":"#c8bfb2"}});
+    add.push({id:"ov-hn",type:"fill",source:"ov","source-layer":"building",minzoom:AVAIL_Z,paint:{"fill-opacity":0}});
+    if(at>=0)st.layers.splice(at,0,...add);else{const c=st.layers.findIndex(l=>l.id==="cd-hn");st.layers.splice(c,0,...add)}
+  }
   st.layers.push({id:"cd-sel-fill",type:"fill",source:"cd-sel",paint:{"fill-color":"#2563eb","fill-opacity":.22}});
   st.layers.push({id:"cd-sel-line",type:"line",source:"cd-sel",paint:{"line-color":"#2563eb","line-width":3}});
   st.layers.push({id:"cd-avail-halo",type:"circle",source:"cd-avail",minzoom:AVAIL_Z,paint:{"circle-radius":["interpolate",["linear"],["zoom"],16,6,18,10,20,13],"circle-color":"#22c55e","circle-opacity":.18}});
@@ -522,21 +534,44 @@ function withOverlay(st){
   return st;
 }
 let lastAvailFC=null,selFC=null,availPts=[];
+/* Overture building outlines: OpenStreetMap is missing houses in some neighborhoods; Overture adds
+   Microsoft/Google outlines traced from satellite photos. Loaded in the background; needs signal. */
+function ovUrl(rel){return "https://tiles.overturemaps.org/"+rel+"/buildings.pmtiles"}
+function loadScript(src){return new Promise((res,rej)=>{const el=document.createElement("script");el.src=src;el.async=true;el.onload=res;el.onerror=()=>rej(0);document.head.appendChild(el)})}
+async function ensurePmtiles(){if(typeof pmtiles!=="undefined")return true;
+  for(const u of ["https://unpkg.com/pmtiles@3.2.1/dist/pmtiles.js","https://cdn.jsdelivr.net/npm/pmtiles@3.2.1/dist/pmtiles.js"]){
+    try{await Promise.race([loadScript(u),new Promise((_,rej)=>setTimeout(()=>rej(0),8000))]);if(typeof pmtiles!=="undefined")return true}catch(e){}}
+  return false}
+(function(){let busy=false,tries=0;
+  const go=async()=>{if(busy||ovReady)return;busy=true;
+    try{if(await ensurePmtiles()){maplibregl.addProtocol("pmtiles",new pmtiles.Protocol().tile);ovReady=true;
+      map.setStyle(LAYERS[curStyle].style,{diff:false,transformStyle:(prev,next)=>withOverlay(next)});ovCheckRelease();return}}catch(e){}
+    busy=false;if(++tries<4)setTimeout(go,15000*tries)};
+  map.once("idle",go);setTimeout(go,6000);addEventListener("online",go)})();
+/* Overture puts out a new release about monthly and retires old ones: use the newest from next launch */
+async function ovCheckRelease(){try{
+  const ctl=new AbortController();setTimeout(()=>ctl.abort(),5000);
+  const j=await (await fetch("https://stac.overturemaps.org/catalog.json",{signal:ctl.signal})).json();const latest=j.latest;if(!latest||latest===ovRel)return;
+  const t=await fetch(ovUrl(latest),{headers:{Range:"bytes=0-15"}});if(t.status===206||t.status===200)localStorage.setItem(OV_REL_KEY,latest)}catch(e){}}
 map.on("style.load",()=>setTimeout(refreshAvail,300));let availOnce=false,idleTries=0;map.on("movestart",()=>{idleTries=0});
 map.on("idle",()=>{if(!availOnce||(!availPts.length&&map.getZoom()>=AVAIL_Z&&idleTries<3)){availOnce=true;idleTries++;refreshAvail()}});
 let availT=null;
-map.on("sourcedata",e=>{if(e.sourceId==="cdomt"&&e.isSourceLoaded){clearTimeout(availT);availT=setTimeout(refreshAvail,150)}});
+map.on("sourcedata",e=>{if((e.sourceId==="cdomt"||e.sourceId==="ov")&&e.isSourceLoaded){clearTimeout(availT);availT=setTimeout(refreshAvail,150)}});
 const KX=lat=>111320*Math.cos(lat*Math.PI/180),KY=110540;
 function buildingPolys(){let fs=[];try{fs=map.querySourceFeatures("cdomt",{sourceLayer:"building"})}catch(e){}
+  if(ovReady&&map.getSource("ov")){try{fs=fs.concat(map.querySourceFeatures("ov",{sourceLayer:"building"}))}catch(e){}}
   const out=[];for(const f of fs){const g=f.geometry;if(!g)continue;(g.type==="Polygon"?[g.coordinates]:g.type==="MultiPolygon"?g.coordinates:[]).forEach(p=>out.push(p))}return out}
 function refreshAvail(){
   const src=map.getSource&&map.getSource("cd-avail");if(!src)return;
   if(map.getZoom()<AVAIL_Z){availPts=[];lastAvailFC=EMPTY;src.setData(EMPTY);updateStreet();return}
-  const seen=new Set(),out=[];const kx=KX(map.getCenter().lat),ky=KY;availPts=[];
+  const grid=new Map(),out=[];const kx=KX(map.getCenter().lat),ky=KY;availPts=[];
   for(const poly of buildingPolys()){const ring=poly[0];if(!ring||ring.length<4)continue;
       const ox=ring[0][0],oy=ring[0][1];let A=0,cx=0,cy=0;for(let i=0;i<ring.length-1;i++){const x0=(ring[i][0]-ox)*kx,y0=(ring[i][1]-oy)*ky,x1=(ring[i+1][0]-ox)*kx,y1=(ring[i+1][1]-oy)*ky,c=x0*y1-x1*y0;A+=c;cx+=(x0+x1)*c;cy+=(y0+y1)*c}
       A/=2;if(Math.abs(A)<55||Math.abs(A)>900)continue; // houses only: skip sheds/garages and big buildings
-      const lng=ox+cx/(6*A)/kx,lat=oy+cy/(6*A)/ky;const k=lng.toFixed(5)+","+lat.toFixed(5);if(seen.has(k))continue;seen.add(k);
+      const lng=ox+cx/(6*A)/kx,lat=oy+cy/(6*A)/ky;
+      const gx=Math.floor(lng*kx/8),gy=Math.floor(lat*ky/8);let dup=false;
+      for(let i=-1;i<=1&&!dup;i++)for(let j=-1;j<=1;j++){const c=grid.get((gx+i)+","+(gy+j));if(c&&c.some(q=>((q[0]-lng)*kx)**2+((q[1]-lat)*ky)**2<64)){dup=true;break}}
+      if(dup)continue;const gk=gx+","+gy;(grid.get(gk)||grid.set(gk,[]).get(gk)).push([lng,lat]);
       let hit=false;for(const h of houses){if(Math.abs(h.lat-lat)<.0003&&Math.abs(h.lng-lng)<.0004&&dist(lat,lng,h.lat,h.lng)<14){hit=true;break}}
       if(!hit){availPts.push([lng,lat]);out.push({type:"Feature",geometry:{type:"Point",coordinates:[lng,lat]},properties:{}})}}
   lastAvailFC={type:"FeatureCollection",features:out};src.setData(lastAvailFC);updateStreet();
@@ -966,7 +1001,7 @@ setInterval(()=>{checkNear();if(curTab==="list")renderList()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderAll()}});
 
 /* ---------- offline + updates ---------- */
-const APP_VERSION="1.7.2";
+const APP_VERSION="1.8";
 $("#verLbl").textContent="Version "+APP_VERSION;
 let swReg=null;
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").then(r=>swReg=r).catch(()=>{});
