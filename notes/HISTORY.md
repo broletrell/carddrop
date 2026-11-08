@@ -38,3 +38,4 @@ Never read at session start. grep it. Older full handoffs: `handoffs/`.
 - 2026-11-08 v2.2.2: two-tab test passed; fixed stale-sheet overwrite of partner edits, delete-wrong-house on partner delete, biz field reset. Owner real team created (301 houses) + one empty team.
 - 2026-11-08 v2.2.3: house numbers on map, GPS prediction + glide, compass-first smoothed facing cone, compass asks on first tap.
 - 2026-11-08 v2.2.4: partner live location (presence table, faded last spot), house numbers on green dots from OSM.
+- 2026-11-08 v2.2.5: partner accuracy circle + rough-spot label; field report of 150 m offset (owner GPS likely rough).

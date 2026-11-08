@@ -1,5 +1,5 @@
 # Card Drop — status (read this first)
-**Updated:** 2026-11-08 session 4. LIVE **v2.2.4**. Full record: `HISTORY.md` (grep only). Old handoffs: `handoffs/`.
+**Updated:** 2026-11-08 session 4. LIVE **v2.2.5**. Full record: `HISTORY.md` (grep only). Old handoffs: `handoffs/`.
 
 ## Basics
 - Phone PWA for Trell's detailing business: mark houses where cards were left. Owner on iPhone. LIVE
@@ -7,7 +7,7 @@
 - One `index.html` (vanilla JS, MapLibre 5.6.1, pmtiles 3.2.1), `sw.js`, `version.json`. Data: `carddrop.v1` houses,
   `carddrop.biz.v1` {buys,jobs}, `carddrop.settings.v1` (per phone), `carddrop.sync.v1` (shared-map state).
 - Sync server: `../carddrop-sync/` (Worker `carddrop-sync` + D1 `carddrop-sync`, local git only). README there.
-- Release: bump `APP_VERSION` + `version.json` + `CACHE` in sw.js (now carddrop-v24), commit, push, poll version.json.
+- Release: bump `APP_VERSION` + `version.json` + `CACHE` in sw.js (now carddrop-v25), commit, push, poll version.json.
 - Look: dark navy theme = "app theme v2" block at END of <style>. Never use var(--ink) as a background.
 
 ## Testing
@@ -50,6 +50,11 @@
   matched to building outline (inside, else ≤12 m). Only where OSM has addresses.
 - Gotcha: never set `position` on a MapLibre marker element (overrides its absolute positioning → marker drifts).
 - Tested in two tabs + node partner script. Own location sending not testable in browser (no GPS).
+
+## Session 4f (v2.2.5)
+- Field test: owner saw partner ~150 m away while side by side. D1 presence: only partner sharing, acc 3 m → owner's own GPS likely the rough one
+  (owner's dot had big accuracy glow; owner not sharing). Added partner accuracy circle + "rough spot" label (acc>30 m).
+  Precise-Location toast only fires at >500 m.
 
 ## Open / unverified
 - Nothing phone-tested by owner yet (multi-select, fast start, shared map, marker). Test teams deleted from D1 (0 teams).

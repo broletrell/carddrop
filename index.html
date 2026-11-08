@@ -417,6 +417,8 @@ html,body{background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialias
 .peer>*{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none}
 .peer .pcone{width:64px;height:64px;transform:translate(-50%,-50%) rotate(var(--hd,0deg));opacity:0;transition:opacity .3s}
 .peer .pcone.on{opacity:1}
+.peer .pacc{width:0;height:0;border-radius:50%;background:rgba(249,115,22,.12);border:1.5px solid rgba(249,115,22,.4)}
+.peer.stale .pacc{display:none}
 .peer .pdot{width:18px;height:18px;border-radius:50%;background:#f97316;border:3px solid #fff;box-shadow:0 0 0 5px rgba(249,115,22,.25),0 2px 6px rgba(0,0,0,.3)}
 .peer .pname{top:auto;bottom:-8px;transform:translate(-50%,0);background:#f97316;color:#fff;font:700 11px/1 -apple-system,system-ui,sans-serif;padding:4px 7px;border-radius:9px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.3)}
 .peer.stale{opacity:.6}
@@ -1586,23 +1588,29 @@ function presBody(){const dev=myDev();
   if(sync.locOff)return {dev,off:1};
   return {dev}}
 function setPeers(list){const now=Date.now(),o={};
-  for(const p of list)if(p&&typeof p.dev==="string"&&isFinite(p.lat)&&isFinite(p.lng))o[p.dev]={name:String(p.name||"Partner").slice(0,24),lat:+p.lat,lng:+p.lng,hd:p.hd==null?null:+p.hd,seen:now-Math.max(0,+p.age||0)};
+  for(const p of list)if(p&&typeof p.dev==="string"&&isFinite(p.lat)&&isFinite(p.lng))o[p.dev]={name:String(p.name||"Partner").slice(0,24),lat:+p.lat,lng:+p.lng,acc:p.acc==null?null:+p.acc,hd:p.hd==null?null:+p.hd,seen:now-Math.max(0,+p.age||0)};
   sync.peers=o;renderPeers()}
 function renderPeers(){const ps=sync&&sync.peers||{},now=Date.now();
   for(const dev in peerMk)if(!ps[dev]||now-ps[dev].seen>PEER_KEEP){peerMk[dev].m.remove();delete peerMk[dev]}
   for(const dev in ps){const p=ps[dev],age=now-p.seen;if(age>PEER_KEEP)continue;const stale=age>STALE;
     let k=peerMk[dev];
     if(!k){const el=document.createElement("div");el.className="peer";
-      el.innerHTML='<svg class="pcone" viewBox="0 0 90 90"><defs><radialGradient id="pg'+dev+'" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#f97316" stop-opacity=".6"/><stop offset="1" stop-color="#f97316" stop-opacity="0"/></radialGradient></defs><path d="M45 45 L28 3 A44 44 0 0 1 62 3 Z" fill="url(#pg'+dev+')"/></svg><div class="pdot"></div><div class="pname"></div>';
+      el.innerHTML='<div class="pacc"></div><svg class="pcone" viewBox="0 0 90 90"><defs><radialGradient id="pg'+dev+'" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#f97316" stop-opacity=".6"/><stop offset="1" stop-color="#f97316" stop-opacity="0"/></radialGradient></defs><path d="M45 45 L28 3 A44 44 0 0 1 62 3 Z" fill="url(#pg'+dev+')"/></svg><div class="pdot"></div><div class="pname"></div>';
       el.onclick=e=>{e.stopPropagation();const q=sync&&sync.peers&&sync.peers[dev];if(!q)return;go(q.lat,q.lng,Math.max(map.getZoom(),17));
         toast(q.name+(Date.now()-q.seen>STALE?" · last seen "+peerAgo(q.seen):" · live now"),null,2000)};
       const m=new maplibregl.Marker({element:el,anchor:"center"}).setLngLat([p.lng,p.lat]).addTo(map);m.getElement().style.zIndex=4;
       k=peerMk[dev]={m,el,lat:p.lat,lng:p.lng}}
     else if(k.lat!==p.lat||k.lng!==p.lng){glideMk(k.m,p.lat,p.lng);k.lat=p.lat;k.lng=p.lng}
     k.el.classList.toggle("stale",stale);
-    k.el.querySelector(".pname").textContent=p.name+(stale?" · "+peerAgo(p.seen):"");
+    const rough=!stale&&p.acc>30;
+    k.el.querySelector(".pname").textContent=p.name+(stale?" · "+peerAgo(p.seen):rough?" · rough spot":"");
+    peerAcc(k.el,p);
     const cone=k.el.querySelector(".pcone");cone.classList.toggle("on",!stale&&p.hd!=null);if(p.hd!=null)cone.style.setProperty("--hd",(p.hd-map.getBearing())+"deg")}
   if(curTab==="set")renderLiveCard()}
+// circle showing how sure their phone is about the spot (only when it's more than ~12 m)
+function peerAcc(el,p){const c=el.querySelector(".pacc");if(!c)return;const mpp=78271.517*Math.cos(p.lat*Math.PI/180)/Math.pow(2,map.getZoom());
+  const d=p.acc>12?Math.min(2*p.acc/mpp,900):0;c.style.width=c.style.height=d+"px"}
+map.on("zoom",()=>{if(sync&&sync.peers)for(const dev in peerMk){const p=sync.peers[dev];if(p)peerAcc(peerMk[dev].el,p)}});
 function glideMk(m,lat,lng){const a=m.getLngLat(),t0=performance.now(),D=900;
   if(Math.abs(a.lat-lat)+Math.abs(a.lng-lng)>0.003){m.setLngLat([lng,lat]);return}
   const step=()=>{const f=Math.min(1,(performance.now()-t0)/D),e=1-(1-f)*(1-f);m.setLngLat([a.lng+(lng-a.lng)*e,a.lat+(lat-a.lat)*e]);if(f<1)requestAnimationFrame(step)};step()}
@@ -1612,7 +1620,7 @@ function renderLiveCard(){$("#liveWrap").classList.toggle("hidden",!sync);if(!sy
   const ps=Object.values(sync.peers||{}).sort((a,b)=>b.seen-a.seen),p=ps[0],row=$("#peerRow");
   row.classList.toggle("hidden",!p);if(!p)return;
   $("#peerName").textContent=ps.length>1?ps.map(x=>x.name).join(", "):p.name;
-  $("#peerStat").textContent=(Date.now()-p.seen>STALE?"Last seen "+peerAgo(p.seen):"Live now")+" · tap to show on map";
+  $("#peerStat").textContent=(Date.now()-p.seen>STALE?"Last seen "+peerAgo(p.seen):"Live now"+(p.acc>30?" · rough spot (±"+Math.round(p.acc)+" m)":""))+" · tap to show on map";
   row.onclick=()=>{haptic();showTab("map");go(p.lat,p.lng,Math.max(map.getZoom(),17))}}
 $("#setShare").addEventListener("change",e=>{settings.shareLoc=e.target.checked;saveSettings();presSent=null;
   if(sync){sync.locOff=!settings.shareLoc;saveSync()}
@@ -1695,7 +1703,7 @@ setInterval(()=>{checkNear();if(curTab==="list")renderList()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderAll()}});
 
 /* ---------- offline + updates ---------- */
-const APP_VERSION="2.2.4";
+const APP_VERSION="2.2.5";
 $("#verLbl").textContent="Version "+APP_VERSION;
 let swReg=null;
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").then(r=>swReg=r).catch(()=>{});
