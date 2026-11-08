@@ -23,6 +23,9 @@
 - Nothing phone-tested by owner yet except Stats sheet (owner screenshot → date bug, fixed v2.0.1).
 
 ## NEXT (owner asked; give effort line + wait for "go")
+- **FIRST (low effort): give Card Drop its own Obsidian atlas section.** Add slug `carddrop` ("Card Drop") to PROJECTS in
+  `../notes/atlas-build.py` and to the slug list in `~/.claude/commands/update.md`; create `../atlas/carddrop/{bugs,features,decisions,code-map,rules}/`;
+  backfill atoms for session-3 work (7 topic notes in `notes/topics/`); run `python3 -I "/Users/rtb/untitled folder/notes/atlas-build.py"`.
 - **Shared map for owner + partner — HIGH effort.** Sync houses (status, amount, notes, history) + biz (buys, jobs).
   NOT synced: settings, map style. Owner has a Cloudflare account with apps (check `../saferoute-server`,
   `../ebike-ai-worker` for existing Worker setup). Plan: Worker + D1/KV, shared team code, per-record last-write-wins
