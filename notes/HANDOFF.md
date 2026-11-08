@@ -1,68 +1,63 @@
-# Card Drop — status
+# Card Drop — status (read this first)
 
-**Last updated:** 2026-11-07 (session 2, v1.8.1 live)
+**Last updated:** 2026-11-08, session 3. LIVE **v1.9.0** (new Stats page; not phone-tested by owner yet). Older detail: `handoffs/` (grep, don't read whole).
 
-## Status
-- LIVE v1.8.1 at https://broletrell.github.io/carddrop/ (public repo broletrell/carddrop, GitHub Pages on main).
-  Owner installed it on iPhone via Add to Home Screen; it works.
-- Local folder: `/Users/rtb/untitled folder/carddrop` (git, remote origin set). Push uses the Mac's saved
-  GitHub credential (`git credential fill`, scope repo) — never print it.
-- Release steps: bump `APP_VERSION` in index.html + `version.json` (same value) + `CACHE` in sw.js, commit, push,
-  wait ~50s, confirm `curl https://broletrell.github.io/carddrop/version.json`. App shows a green Update banner.
-- Preview: `preview_start name "carddrop"` (vault .claude/launch.json, port 8795). Hidden preview pane loads
-  map tiles VERY slowly (30–60s); use long awaits. Geolocation must be stubbed in preview.
+## Basics
+- Phone PWA to mark houses where detailing business cards were left. Owner (Trell, thedetailboyz916) uses iPhone,
+  often away from Mac. LIVE https://broletrell.github.io/carddrop/ (repo broletrell/carddrop, Pages on main).
+- Folder `/Users/rtb/untitled folder/carddrop`: one `index.html` (vanilla JS, MapLibre 5.6.1), `sw.js`, `version.json`.
+  Data only in phone localStorage (`carddrop.v1` houses, `carddrop.settings.v1`). Houses: {id,lat,lng,status
+  left|talked|booked|skip, addr,num,street,city,notes,amount,created,updated,history[{s,t}]}.
+- Release: bump `APP_VERSION` (index.html) + `version.json` (same) + `CACHE` in sw.js (now carddrop-v14), commit,
+  push (Mac's saved GitHub credential, never print it), poll `curl .../version.json?x=$RANDOM` until new. Phone shows
+  green Update banner (or close app fully + reopen).
 
-## What's built (v1.0 → v1.6)
-- Single index.html, vanilla JS, MapLibre GL 5.6.1. Tabs: Map, Houses (search/filter/grouped by street), Stats, Settings.
-- Map styles: Auto (Day/Night by sunset, `isNight`), Card Drop Day/Night (`brandStyle()` custom OpenFreeMap vector
-  style), Satellite + Hybrid (Esri raster; imagery tileSize 128 + maxzoom 20 = sharp), Classic (OFM liberty).
-  Overlay injected into every style via `setStyle(...,{transformStyle: withOverlay})`.
-- Green dots = unhit houses: building centroids (55–900 m²) from OFM `building` layer (`refreshAvail`), hidden if a
-  marked house within 14 m. OSM address points too sparse in Sacramento.
-- Tap house → bottom sheet (status cards Card left/Talked/Booked/Skip, address auto via Nominatim, notes, dup warning),
-  house outline highlight (`highlightAt`), map slides house above sheet.
-- Marked houses: see Session 2 (now status-colored dots, no pins).
-- Pulsing location dot + compass cone (`startCompass`, iOS permission on Get Started / locate tap). Untested on phone.
-- Street progress chip under top bar (`updateStreet`: nearest named road, houses within 32 m of it and 230 m of you).
-- Nearby warning banner, undo toasts, backup/restore JSON, CSV export, onboarding, update banner, full-screen fix
-  for iPhone standalone (`--H` = screen.height), offline service worker.
-- "Card Left Here" GPS button was REMOVED at owner's request (code kept as unused `dropHere`).
+## Testing (important)
+- Preview: `preview_start name "carddrop"` (port 8795). If another chat holds 8795, use `carddrop-test` (python on 8796 — open http://localhost:8796 even if the tool says another port). Click tabs via JS, not ref clicks (ref clicks scroll the body and leave a white strip). The preview pane is usually HIDDEN → requestAnimationFrame
+  stalls → map never loads. Trick: temp `_test.html` in carddrop (git-excluded via .git/info/exclude) that fetches
+  index.html, injects `<script>` overriding rAF with setTimeout (+ optional fake geolocation), replaces
+  `location.protocol==="https:"` with `false` (no SW), then document.write. Delete it before committing.
+- Use resize_window mobile; seed houses via localStorage (+ `carddrop.biz.v1` for purchases/jobs). Test area with missing OSM buildings: 38.515,-121.48.
 
-## Session 2 (v1.7, done + live, NOT phone-tested yet)
-- Satellite/Hybrid = Esri photo + our own vector roads/labels (`satStyle(full)`), no Esri transportation overlay → no rail.
-- Marked houses = geojson circle layer `cd-done` (same size as green dots, status color). DOM pins removed;
-  map click checks `cd-done` first → openHouse. Booked color changed to purple #9333ea.
-- Top bar: stat cards (Cards / Talked / Clients+% / Revenue+avg), range picker Today/7d/30d/All
-  (`settings.range`), collapse arrow (`settings.statsMin`), legend row. `calc(r)` does the math;
-  `--tbH` CSS var pushes street chip/near banner below the bar.
-- Booked → `askAmount(h)` sheet with $ box; booked houses show "Job amount" field. Stored as `h.amount`
-  (kept in backup restore + CSV). Stats tab: Revenue card + Expected clients (open cards × real booking rate,
-  needs ≥10 cards and ≥1 booking, else shows what's missing).
-- Slow Auto map fix (owner report): map starts with an empty style (no more loading Classic then swapping),
-  preconnect to tiles, SW tile cache now a fixed `carddrop-tiles` name (was wiped every update), trim
-  throttled, `/planet` + styles network-first; night side streets brighter/wider at mid zoom, buildings from z13.
-- Preview gotcha: when the preview pane is hidden, requestAnimationFrame stalls and the map never loads.
-  For testing, override rAF with setTimeout in the page.
+## What's built
+- Tabs: Map, Houses (search/filter by street), Stats, Settings (biz name, nearby warning, backup/restore JSON, CSV).
+- Map styles: Auto (day/night by sunset), Card Drop Day/Night (`brandStyle`, OpenFreeMap vectors), Satellite/Hybrid
+  (`satStyle`: Esri photo + our own vector roads/labels, no rail), Classic. Overlay added to every style via
+  `setStyle(...,{transformStyle:withOverlay})`.
+- Houses: green "not hit" dots = building centroids (55–900 m²) from OpenFreeMap + **Overture buildings PMTiles**
+  (fills neighborhoods OSM lacks; pmtiles@3.2.1 loaded in background, `ovReady`, release in `carddrop.ovrel`),
+  de-duped 8 m grid, shown from zoom 14 (`AVAIL_Z`). Marked houses = `cd-done` circle layer colored by status
+  (Card left blue, Talked amber, Booked purple #9333ea, Skip gray), min size city-wide. Tap → bottom sheet.
+- Map page = map only + small legend pill top-left (`#mLegend`). Old top stats bar removed (`--tbH` fixed 30px).
+- Booked asks "$ amount" (`askAmount`, stored `h.amount`).
+- **Stats tab (v1.9, dark, like mockup)** — code under `/* ---------- stats ---------- */`:
+  - Data: `carddrop.biz.v1` = {buys:[{id,t,qty,cost}], jobs:[{id,t,amount,source,note}]} (`biz`, `persistBiz`). In backup
+    (v:2) + merged on restore. "Delete all houses" leaves them alone.
+  - 3 range dropdowns (1/7/14/30 days rolling, All time): Performance (`settings.sRange`), Cards & ROI (`cRange`),
+    Business Overview (`oRange`). `win(r,prev)` = window / same-length previous window; `calc(w)`; `chg()` shows ±% only
+    from real prev numbers ("↑ new" if prev 0).
+  - Performance: cards passed out, talked, clients (booked + other jobs), revenue; streak (current + best, days with ≥1 card).
+  - Cards & ROI: bought, spent, stock (bought − cards out since first logged purchase), ROI = card revenue ÷ card spend.
+  - Business Overview: total revenue / clients / avg ticket, cards vs other-jobs bar, "Add job" (source chips). Tap a log row to delete (undo).
+  - Expected clients (`expected(days)`, 7/14/30 toggle, "i" sheet explains): baseline 2% (BASE_RATE) worth 150 virtual cards
+    (PRIOR_CARDS), blended with own bookings ÷ time-weighted cards; timing F(d)=1−e^(−d/10) (~50% wk1, 75% d14, 95% d30);
+    80% range. Research (2026-11-08): home-service cards/door hangers ~1–4%, 2–3% typical; most calls week 1, long tail.
+    Sources: 4over4.com/statistics/door-hanger-advertising-effectiveness-data, doorhangerswork.com/understanding-door-hanger-response-rates/,
+    dma.org.uk door-drop article (~4% avg UK), community.windowcleaner.com thread 40700 (≈2 jobs per 75 hangers). Most
+    figures come from printers → we use the middle, not the 6–12% claims.
+- Location dot + compass cone, street progress chip, nearby-done warning, undo, onboarding, offline SW.
 
-- v1.7.1: fixed startup crash (old bug from v1.6) when saved map style = Auto: `resolveLayer` read `me`
-  before its `let` line. `me` is now declared above the map section. Showed as an all-blue screen on phone.
-- v1.7.2: owner saw no dots + glitchy blue ring on phone (could NOT reproduce in preview; dots fine there).
-  Ring pulse now animates transform/opacity instead of width/height. Green dots: `idle` re-runs refreshAvail
-  up to 3x per move if none showing at z16+. If dots still missing on phone, ask for a screenshot + zoom level.
-- Phone-like test trick: temp `_test.html` (git-excluded) that fetches index.html, injects rAF→setTimeout +
-  fake GPS + disables SW, then document.write — lets the map load in the hidden preview pane.
-- v1.8: ROOT CAUSE of "no dots/houses" = OpenStreetMap simply has no buildings in owner's area (south Sac
-  ~38.515,-121.48 had 2 OSM buildings vs 5467 Overture). Added Overture buildings PMTiles (copied from SafeRoute
-  v116): pmtiles@3.2.1 loaded in background, then `ovReady` → setStyle re-applies `withOverlay` which adds
-  `ov` source + `ov-bld`/`ov-bld-line` (under `bld`) + invisible `ov-hn` for querying. `buildingPolys` merges both;
-  dots de-duped on an 8 m grid. Release in localStorage `carddrop.ovrel`, auto-updated from stac catalog.
-  SW skips overturemaps/range requests. Needs signal (not cached offline).
+## Problems hit + fixes (don't repeat)
+- All-blue screen on launch = startup crash: `let` vars read before declared (Auto style read `me`). Declare
+  shared state (`me`, `ovReady`, `ovRel`) near the top, before `setLayer(settings.layer)` runs.
+- "No houses/dots in my neighborhood" = OSM has no buildings there → fixed with Overture (same as SafeRoute v116).
+- Slow map: was loading Classic style first then swapping; tile cache was wiped every update (now fixed name
+  `carddrop-tiles`); SW must not cache range requests (Overture).
+- Location pulse glitch on iPhone: animate transform/opacity, never width/height.
+- CARTO tiles need an API key now; don't use. Green dots at whole-city zoom not possible (no building data in
+  low-zoom tiles + too many points) — owner accepted zoom 14 limit.
 
 ## NEXT
-- Owner to test v1.8 on phone (load speed on Auto, $ box, stats bar fit, compass still untested).
-
-## Owner rules (also in ~/.claude/CLAUDE.md)
-- Before each task: one line effort level (lowest that works), then wait for "go".
-- Short, plain-language replies, few bullets, no file names/tech detail unless asked.
-- Owner is on iPhone, often away from the Mac.
-- v1.8.1: dots now from zoom 15 (`AVAIL_Z`), smaller at z15.
+- Owner to try v1.9.0 on iPhone (Update banner). Check: dropdowns open the iOS picker, Add cards/Add job sheets + date picker,
+  numbers look right with real data. Nothing else requested yet.
+- Ideas if asked: edit (not just delete) purchases/jobs; include buys/jobs in CSV export.
