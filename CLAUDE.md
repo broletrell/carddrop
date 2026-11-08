@@ -5,7 +5,7 @@ business card was left so he never hits the same house twice. iPhone, installed
 via Safari > Share > Add to Home Screen.
 
 Stack: one `index.html` (vanilla JS + MapLibre GL 5.6.1 from unpkg, same as SafeRoute), OpenFreeMap
-vector styles (liberty/bright/positron/dark), Esri raster satellite, Nominatim reverse geocoding for addresses.
+vector tiles with our own brandStyle(day/night) built in JS (plus liberty as Classic), Esri raster satellite, Nominatim reverse geocoding for addresses.
 Data lives only on the phone (localStorage keys `carddrop.v1`, `carddrop.settings.v1`).
 `sw.js` = offline cache, `manifest.webmanifest` + `icons/` = home screen install.
 

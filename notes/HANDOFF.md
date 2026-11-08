@@ -12,6 +12,7 @@
 - v1.3: fixed gap at bottom on iPhone home-screen app (sizes to screen.height in standalone; fixed elements now absolute in body). Not yet confirmed on phone.
 - v1.4: switched Leaflet -> MapLibre + OpenFreeMap vector maps (sharp, like SafeRoute). Styles: Street(liberty), Bright, Clean light(positron), Dark, Satellite, Hybrid.
 - v1.5: removed Card Left Here button; restyled side buttons (frosted group) + status buttons (icon cards); satellite sharper (Esri z20, tileSize 128 = retina); green dots on unhit houses = building centroids 55-900 m2 from OpenFreeMap building layer, injected into every style via setStyle transformStyle; hidden if a marked house within 14 m. OSM address points too sparse in Sacramento, so buildings used.
+- v1.6 agency look: custom Card Drop Day/Night map styles (brandStyle in index.html), Auto switches at sunset (isNight), selected house outline highlight, pin shadow + pop, pulsing location dot + compass cone (iOS asks permission on Get Started/locate tap), street progress chip (nearest named road within 45m, houses within 32m of it and 230m of you). Old style keys map to Auto. Cone/compass untested on phone.
 - LIVE at https://broletrell.github.io/carddrop/ (public repo broletrell/carddrop, Pages on main).
 
 ## Older context

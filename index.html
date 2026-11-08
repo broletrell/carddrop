@@ -77,9 +77,24 @@ body{position:relative}
 .hint{position:absolute;left:50%;transform:translateX(-50%);bottom:18px;z-index:499;background:rgba(15,23,42,.8);color:#fff;font-size:12px;padding:6px 12px;border-radius:12px;white-space:nowrap;pointer-events:none}
 
 /* markers */
-.pin{width:30px;height:30px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);display:grid;place-items:center;color:#fff;font-weight:800;font-size:10px;line-height:1}
+.pin{width:30px;height:30px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 4px 10px -2px rgba(15,23,42,.45),0 0 0 1px rgba(15,23,42,.08);transition:transform .15s;display:grid;place-items:center;color:#fff;font-weight:800;font-size:10px;line-height:1}
 .pin.num{width:max-content;min-width:30px;padding:0 7px;border-radius:15px;font-size:11px;}
-.me{width:20px;height:20px;border-radius:50%;background:#2563eb;border:3px solid #fff;box-shadow:0 0 0 6px rgba(37,99,235,.25),0 2px 6px rgba(0,0,0,.3)}
+.pin.pop{animation:pop .45s cubic-bezier(.3,1.6,.5,1)}
+@keyframes pop{0%{transform:scale(0)}100%{transform:scale(1)}}
+.me-wrap{position:relative;width:90px;height:90px;pointer-events:none}
+.me-wrap>*{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
+.me-pulse{width:22px;height:22px;border-radius:50%;background:rgba(37,99,235,.35);animation:mepulse 2s ease-out infinite}
+@keyframes mepulse{0%{width:22px;height:22px;opacity:.9}100%{width:80px;height:80px;opacity:0}}
+.me-cone{width:90px;height:90px;transform-origin:50% 50%;transform:translate(-50%,-50%) rotate(var(--hd,0deg));opacity:0;transition:opacity .3s}
+.me-cone.on{opacity:1}
+.street{position:absolute;left:12px;top:calc(var(--sat) + 76px);z-index:505;background:rgba(255,255,255,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:14px;padding:9px 12px;min-width:190px;max-width:70vw;box-shadow:0 6px 18px rgba(15,23,42,.16),0 0 0 .5px rgba(15,23,42,.1);animation:drop .25s ease}
+.street b{font-size:14px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.street small{font-size:12px;color:var(--ink2)}
+.street .bar{height:5px;border-radius:3px;background:#e2e8f0;margin-top:6px;overflow:hidden}
+.street .bar i{display:block;height:100%;background:linear-gradient(90deg,#16a34a,#22c55e);border-radius:3px;transition:width .4s}
+body.night .street{background:rgba(15,23,42,.88);color:#e2e8f0}body.night .street .bar{background:#1e293b}body.night .street small{color:#94a3b8}
+body.night .mapbtns{background:rgba(15,23,42,.82)}body.night .rbtn{color:#e2e8f0}body.night .rbtn+.rbtn{border-color:rgba(255,255,255,.12)}
+.me{position:relative;width:20px;height:20px;border-radius:50%;background:#2563eb;border:3px solid #fff;box-shadow:0 0 0 6px rgba(37,99,235,.25),0 2px 6px rgba(0,0,0,.3)}
 .tmp{width:34px;height:34px;border-radius:50%;background:rgba(15,23,42,.85);border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);animation:pulse 1.2s infinite}
 @keyframes pulse{50%{transform:scale(1.15)}}
 
@@ -224,6 +239,7 @@ body:not(.on-map) .toast{bottom:calc(var(--tab) + var(--sab) + 14px)}
       </div>
       <div class="chip-today"><b id="todayCount">0</b><span>Today</span></div>
     </div>
+    <div class="street hidden" id="street"><b id="streetN"></b><small id="streetC"></small><div class="bar"><i id="streetBar"></i></div></div>
     <div class="near hidden" id="near">
       <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></div>
       <div><b id="nearT">Already done</b><small id="nearS"></small></div>
@@ -358,7 +374,7 @@ function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(houses))}catch(e){toast("Couldn't save. Phone storage may be full.")}}
 function saveSettings(){try{localStorage.setItem(SKEY,JSON.stringify(settings))}catch(e){}}
 let houses=load(KEY,[]); if(!Array.isArray(houses))houses=[];
-let settings=Object.assign({biz:"",near:true,radius:25,follow:false,layer:"street",onboarded:false,lastBackup:0,lastView:null},load(SKEY,{}));
+let settings=Object.assign({biz:"",near:true,radius:25,follow:false,layer:"auto",onboarded:false,lastBackup:0,lastView:null},load(SKEY,{}));
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 
 /* ---------- helpers ---------- */
@@ -378,74 +394,149 @@ const startView=settings.lastView||{lat:38.58,lng:-121.49,z:12};
 const map=new maplibregl.Map({container:"map",style:"https://tiles.openfreemap.org/styles/liberty",center:[startView.lng,startView.lat],zoom:startView.z,maxZoom:21,
   dragRotate:false,pitchWithRotate:false,attributionControl:{compact:true}});
 map.touchZoomRotate.disableRotation();window.cdMap=map;
-const go=(lat,lng,z)=>map.easeTo({center:[lng,lat],zoom:z==null?map.getZoom():z,duration:600});
+const go=(lat,lng,z)=>map.flyTo({center:[lng,lat],zoom:z==null?map.getZoom():z,speed:1.4,curve:1.3,essential:true});
 const pan=(lat,lng)=>map.easeTo({center:[lng,lat],duration:500});
 function mk(html,lat,lng,click){const w=document.createElement("div");w.innerHTML=html;const el=w.firstElementChild;
   if(click)el.addEventListener("click",e=>{e.stopPropagation();click()});
   return new maplibregl.Marker({element:el,anchor:"center"}).setLngLat([lng,lat]).addTo(map)}
 const ESRI="https://server.arcgisonline.com/ArcGIS/rest/services/";
 function raster(names){const st={version:8,glyphs:"https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",sources:{},layers:[]};names.forEach((n,i)=>{const photo=n==="World_Imagery";st.sources["r"+i]={type:"raster",tiles:[ESRI+n+"/MapServer/tile/{z}/{y}/{x}"],tileSize:photo?128:256,maxzoom:photo?20:19,attribution:"&copy; Esri"};st.layers.push({id:"r"+i,type:"raster",source:"r"+i})});return st}
+/* ---------- Card Drop branded map styles ---------- */
 const OFM="https://tiles.openfreemap.org/styles/";
+const PAL={
+  day:{bg:"#f3f5f8",park:"#e1ecdf",wood:"#d9e7d6",water:"#cbdcee",waterway:"#b6cde6",cas:"#d5dbe4",road:"#ffffff",major:"#ffffff",majorCas:"#c6cdd8",hwy:"#fbeed8",hwyCas:"#e6d3b3",path:"#c9d0da",rail:"#c3c9d3",bld:"#e4e8ee",bldLine:"#c7ced9",lbl:"#334155",lblHalo:"#ffffff",place:"#0f172a",num:"#8a94a6"},
+  night:{bg:"#0d1424",park:"#122019",wood:"#13241c",water:"#0a1a30",waterway:"#0d2440",cas:"#0a101d",road:"#253049",major:"#2d3a57",majorCas:"#0a101d",hwy:"#3a3a52",hwyCas:"#0a101d",path:"#2a3550",rail:"#2a3448",bld:"#1a2336",bldLine:"#2b3852",lbl:"#c3cddc",lblHalo:"#0d1424",place:"#e2e8f0",num:"#7d8aa3"}
+};
+function brandStyle(m){const P=PAL[m];const S="cdomt";
+  const w=(a,b)=>["interpolate",["exponential",1.6],["zoom"],12,a,20,b];
+  const cls=c=>["in",["get","class"],["literal",c]];
+  const road=(id,c,fill,cas,wa,wb,minz)=>[
+    {id:id+"-cas",type:"line",source:S,"source-layer":"transportation",minzoom:minz,filter:["all",cls(c),["!=",["get","brunnel"],"tunnel"]],layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":cas,"line-width":w(wa+1,wb+3)}},
+    {id:id,type:"line",source:S,"source-layer":"transportation",minzoom:minz,filter:["all",cls(c),["!=",["get","brunnel"],"tunnel"]],layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":fill,"line-width":w(wa,wb)}}];
+  return {version:8,name:"Card Drop "+m,glyphs:"https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
+    sources:{[S]:{type:"vector",url:"https://tiles.openfreemap.org/planet",attribution:"&copy; OpenStreetMap"}},
+    layers:[
+      {id:"bg",type:"background",paint:{"background-color":P.bg}},
+      {id:"wood",type:"fill",source:S,"source-layer":"landcover",filter:cls(["wood","forest","grass","farmland"]),paint:{"fill-color":P.wood,"fill-opacity":.6}},
+      {id:"park",type:"fill",source:S,"source-layer":"park",paint:{"fill-color":P.park}},
+      {id:"landuse",type:"fill",source:S,"source-layer":"landuse",filter:cls(["cemetery","pitch","stadium","playground","grass"]),paint:{"fill-color":P.park,"fill-opacity":.8}},
+      {id:"water",type:"fill",source:S,"source-layer":"water",paint:{"fill-color":P.water}},
+      {id:"waterway",type:"line",source:S,"source-layer":"waterway",paint:{"line-color":P.waterway,"line-width":w(.5,4)}},
+      {id:"path",type:"line",source:S,"source-layer":"transportation",minzoom:16,filter:cls(["path","track"]),paint:{"line-color":P.path,"line-width":1.2,"line-dasharray":[2,2]}},
+      {id:"rail",type:"line",source:S,"source-layer":"transportation",minzoom:12,filter:cls(["rail","transit"]),paint:{"line-color":P.rail,"line-width":w(.6,2)}},
+      ...road("minor",["minor","service"],P.road,P.cas,.4,14,13),
+      ...road("mid",["tertiary","secondary"],P.major,P.majorCas,.8,18,10),
+      ...road("primary",["primary","trunk"],P.major,P.majorCas,1,20,8),
+      ...road("hwy",["motorway"],P.hwy,P.hwyCas,1.2,22,6),
+      {id:"bld",type:"fill",source:S,"source-layer":"building",minzoom:14,paint:{"fill-color":P.bld,"fill-opacity":["interpolate",["linear"],["zoom"],14,0,15.5,1]}},
+      {id:"bld-line",type:"line",source:S,"source-layer":"building",minzoom:16,paint:{"line-color":P.bldLine,"line-width":["interpolate",["linear"],["zoom"],16,.5,19,1.4]}},
+      {id:"road-lbl",type:"symbol",source:S,"source-layer":"transportation_name",minzoom:13,filter:cls(["minor","service","tertiary","secondary","primary","trunk","motorway"]),
+        layout:{"symbol-placement":"line","text-field":["get","name"],"text-font":["Noto Sans Bold"],"text-size":["interpolate",["linear"],["zoom"],13,10,17,13,20,16],"text-letter-spacing":.02,"text-max-angle":30},
+        paint:{"text-color":P.lbl,"text-halo-color":P.lblHalo,"text-halo-width":1.6}},
+      {id:"housenum",type:"symbol",source:S,"source-layer":"housenumber",minzoom:18,layout:{"text-field":["get","housenumber"],"text-font":["Noto Sans Regular"],"text-size":10,"text-offset":[0,1.1]},paint:{"text-color":P.num,"text-halo-color":P.lblHalo,"text-halo-width":1}},
+      {id:"place",type:"symbol",source:S,"source-layer":"place",maxzoom:16,filter:cls(["city","town","village","suburb","neighbourhood"]),
+        layout:{"text-field":["get","name"],"text-font":["Noto Sans Bold"],"text-size":["match",["get","class"],"city",16,"town",14,12],"text-transform":["match",["get","class"],["suburb","neighbourhood"],"uppercase","none"],"text-letter-spacing":["match",["get","class"],["suburb","neighbourhood"],.12,0]},
+        paint:{"text-color":P.place,"text-opacity":.75,"text-halo-color":P.lblHalo,"text-halo-width":1.5}}
+    ]};
+}
+/* rough sunset check for auto day/night */
+function isNight(lat,lng){const d=new Date(),start=Date.UTC(d.getUTCFullYear(),0,0),doy=Math.floor((d-start)/864e5),r=Math.PI/180;
+  const decl=23.44*Math.sin(r*360*(284+doy)/365);const x=-Math.tan(lat*r)*Math.tan(decl*r);if(x>=1)return true;if(x<=-1)return false;
+  const ha=Math.acos(x)/r/15,noon=12-lng/15,now=d.getUTCHours()+d.getUTCMinutes()/60;
+  const rel=((now-noon)%24+36)%24-12;return Math.abs(rel)>ha+0.25}
 const LAYERS={
-  street:{name:"Street",sub:"Natural colors, house numbers",style:OFM+"liberty"},
-  color:{name:"Bright",sub:"Bold, colorful streets",style:OFM+"bright"},
-  light:{name:"Clean light",sub:"Simple and gray",style:OFM+"positron"},
-  dark:{name:"Dark",sub:"For dusk and night",style:OFM+"dark"},
-  sat:{name:"Satellite",sub:"Photo with roads",style:raster(["World_Imagery","Reference/World_Transportation"])},
-  hybrid:{name:"Hybrid",sub:"Photo with roads and place names",style:raster(["World_Imagery","Reference/World_Transportation","Reference/World_Boundaries_and_Places"])}
+  auto:{name:"Auto",sub:"Card Drop map, goes dark at sunset"},
+  day:{name:"Card Drop Day",sub:"Clean, house-focused",style:brandStyle("day")},
+  night:{name:"Card Drop Night",sub:"Easy on the eyes after dark",style:brandStyle("night")},
+  sat:{name:"Satellite",sub:"Sharp photo with roads",style:raster(["World_Imagery","Reference/World_Transportation"])},
+  hybrid:{name:"Hybrid",sub:"Photo with roads and place names",style:raster(["World_Imagery","Reference/World_Transportation","Reference/World_Boundaries_and_Places"])},
+  classic:{name:"Classic",sub:"Standard colorful map",style:OFM+"liberty"}
 };
 let curStyle=null;
-function setLayer(k){if(!LAYERS[k])k="street";if(curStyle!==k){curStyle=k;map.setStyle(LAYERS[k].style,{diff:false,transformStyle:(prev,next)=>withOverlay(next)})}settings.layer=k;saveSettings();$("#btnLayer").classList.toggle("on",k!=="street")}
+function resolveLayer(k){if(k!=="auto")return k;const c=me||map.getCenter();return isNight(c.lat,c.lng)?"night":"day"}
+function setLayer(k){if(!LAYERS[k])k="auto";const real=resolveLayer(k);
+  if(curStyle!==real){curStyle=real;map.setStyle(LAYERS[real].style,{diff:false,transformStyle:(prev,next)=>withOverlay(next)})}
+  settings.layer=k;saveSettings();$("#btnLayer").classList.toggle("on",k!=="auto");document.body.classList.toggle("night",real==="night")}
 setLayer(settings.layer);
+setInterval(()=>{if(settings.layer==="auto")setLayer("auto")},300000);
 $("#btnLayer").onclick=()=>{haptic();sheetOpen(`<div class="sh-addr">Map style</div><div class="card" style="margin-top:12px">${Object.entries(LAYERS).map(([k,x])=>`<button class="row" data-ly="${k}"><div class="m"><div class="a">${x.name}</div><div class="s">${x.sub}</div></div>${settings.layer===k?'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5 9-10"/></svg>':""}</button>`).join("")}</div>`);
   document.querySelectorAll("[data-ly]").forEach(b=>b.onclick=()=>{setLayer(b.dataset.ly);sheetClose();toast(LAYERS[b.dataset.ly].name+" map",null,1400)})};
 map.on("moveend",()=>{const c=map.getCenter();settings.lastView={lat:c.lat,lng:c.lng,z:map.getZoom()};saveSettings();renderMarkers();refreshAvail()});
 
-/* green dots = houses not hit yet (from map building outlines) */
-const AVAIL_Z=16;
+/* green dots = houses not hit yet (from map building outlines) + selected-house highlight */
+const AVAIL_Z=16;const EMPTY={type:"FeatureCollection",features:[]};
 function withOverlay(st){
   st=Object.assign({},st,{sources:Object.assign({},st.sources),layers:st.layers.slice()});
-  st.sources.cdomt={type:"vector",url:"https://tiles.openfreemap.org/planet"};
-  st.sources["cd-avail"]={type:"geojson",data:{type:"FeatureCollection",features:[]}};
+  st.sources.cdomt={type:"vector",url:"https://tiles.openfreemap.org/planet",attribution:"&copy; OpenStreetMap"};
+  st.sources["cd-avail"]={type:"geojson",data:lastAvailFC||EMPTY};
+  st.sources["cd-sel"]={type:"geojson",data:selFC||EMPTY};
+  if(!st.glyphs)st.glyphs="https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf";
   st.layers.push({id:"cd-hn",type:"fill",source:"cdomt","source-layer":"building",minzoom:AVAIL_Z,paint:{"fill-opacity":0}});
+  st.layers.push({id:"cd-sel-fill",type:"fill",source:"cd-sel",paint:{"fill-color":"#2563eb","fill-opacity":.22}});
+  st.layers.push({id:"cd-sel-line",type:"line",source:"cd-sel",paint:{"line-color":"#2563eb","line-width":3}});
+  st.layers.push({id:"cd-avail-halo",type:"circle",source:"cd-avail",minzoom:AVAIL_Z,paint:{"circle-radius":["interpolate",["linear"],["zoom"],16,6,18,10,20,13],"circle-color":"#22c55e","circle-opacity":.18}});
   st.layers.push({id:"cd-avail",type:"circle",source:"cd-avail",minzoom:AVAIL_Z,paint:{
-    "circle-radius":["interpolate",["linear"],["zoom"],16,3.5,18,6,20,8],"circle-color":"#22c55e","circle-stroke-color":"#fff","circle-stroke-width":["interpolate",["linear"],["zoom"],16,1,19,2],"circle-opacity":.95}});
+    "circle-radius":["interpolate",["linear"],["zoom"],16,3.5,18,5.5,20,7.5],"circle-color":"#16a34a","circle-stroke-color":"#fff","circle-stroke-width":["interpolate",["linear"],["zoom"],16,1,19,2]}});
   return st;
 }
-function addOverlay(){
-  if(!map.getSource("cdomt"))map.addSource("cdomt",{type:"vector",url:"https://tiles.openfreemap.org/planet"});
-  if(!map.getLayer("cd-hn"))map.addLayer({id:"cd-hn",type:"circle",source:"cdomt","source-layer":"housenumber",minzoom:AVAIL_Z,paint:{"circle-radius":1,"circle-opacity":0,"circle-stroke-opacity":0}});
-  if(!map.getSource("cd-avail"))map.addSource("cd-avail",{type:"geojson",data:{type:"FeatureCollection",features:[]}});
-  if(!map.getLayer("cd-avail"))map.addLayer({id:"cd-avail",type:"circle",source:"cd-avail",minzoom:AVAIL_Z,paint:{
-    "circle-radius":["interpolate",["linear"],["zoom"],16,3.5,18,6,20,8],"circle-color":"#22c55e","circle-stroke-color":"#fff","circle-stroke-width":["interpolate",["linear"],["zoom"],16,1,19,2],"circle-opacity":.95}});
-  refreshAvail();
-}
+let lastAvailFC=null,selFC=null,availPts=[];
 map.on("style.load",()=>setTimeout(refreshAvail,300));map.on("idle",()=>{if(!availOnce){availOnce=true;refreshAvail()}});let availOnce=false;
-map.on("styledata",()=>{if(map.isStyleLoaded()&&!map.getLayer("cd-avail"))try{addOverlay()}catch(e){}});
-map.on("load",()=>{try{addOverlay()}catch(e){}});
 let availT=null;
 map.on("sourcedata",e=>{if(e.sourceId==="cdomt"&&e.isSourceLoaded){clearTimeout(availT);availT=setTimeout(refreshAvail,150)}});
+const KX=lat=>111320*Math.cos(lat*Math.PI/180),KY=110540;
+function buildingPolys(){let fs=[];try{fs=map.querySourceFeatures("cdomt",{sourceLayer:"building"})}catch(e){}
+  const out=[];for(const f of fs){const g=f.geometry;if(!g)continue;(g.type==="Polygon"?[g.coordinates]:g.type==="MultiPolygon"?g.coordinates:[]).forEach(p=>out.push(p))}return out}
 function refreshAvail(){
   const src=map.getSource&&map.getSource("cd-avail");if(!src)return;
-  if(map.getZoom()<AVAIL_Z){src.setData({type:"FeatureCollection",features:[]});return}
-  let fs=[];try{fs=map.querySourceFeatures("cdomt",{sourceLayer:"building"})}catch(e){}
-  const seen=new Set(),out=[];const kx=111320*Math.cos(map.getCenter().lat*Math.PI/180),ky=110540;
-  for(const f of fs){const g=f.geometry;if(!g)continue;
-    const polys=g.type==="Polygon"?[g.coordinates]:g.type==="MultiPolygon"?g.coordinates:[];
-    for(const poly of polys){const ring=poly[0];if(!ring||ring.length<4)continue;
+  if(map.getZoom()<AVAIL_Z){availPts=[];lastAvailFC=EMPTY;src.setData(EMPTY);updateStreet();return}
+  const seen=new Set(),out=[];const kx=KX(map.getCenter().lat),ky=KY;availPts=[];
+  for(const poly of buildingPolys()){const ring=poly[0];if(!ring||ring.length<4)continue;
       const ox=ring[0][0],oy=ring[0][1];let A=0,cx=0,cy=0;for(let i=0;i<ring.length-1;i++){const x0=(ring[i][0]-ox)*kx,y0=(ring[i][1]-oy)*ky,x1=(ring[i+1][0]-ox)*kx,y1=(ring[i+1][1]-oy)*ky,c=x0*y1-x1*y0;A+=c;cx+=(x0+x1)*c;cy+=(y0+y1)*c}
       A/=2;if(Math.abs(A)<55||Math.abs(A)>900)continue; // houses only: skip sheds/garages and big buildings
       const lng=ox+cx/(6*A)/kx,lat=oy+cy/(6*A)/ky;const k=lng.toFixed(5)+","+lat.toFixed(5);if(seen.has(k))continue;seen.add(k);
       let hit=false;for(const h of houses){if(Math.abs(h.lat-lat)<.0003&&Math.abs(h.lng-lng)<.0004&&dist(lat,lng,h.lat,h.lng)<14){hit=true;break}}
-      if(!hit)out.push({type:"Feature",geometry:{type:"Point",coordinates:[lng,lat]},properties:{}})}}
-  src.setData({type:"FeatureCollection",features:out});
+      if(!hit){availPts.push([lng,lat]);out.push({type:"Feature",geometry:{type:"Point",coordinates:[lng,lat]},properties:{}})}}
+  lastAvailFC={type:"FeatureCollection",features:out};src.setData(lastAvailFC);updateStreet();
+}
+/* highlight the house outline under a point */
+function inRing(x,y,r){let c=false;for(let i=0,j=r.length-1;i<r.length;j=i++){const xi=r[i][0],yi=r[i][1],xj=r[j][0],yj=r[j][1];if(((yi>y)!=(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi))c=!c}return c}
+function highlightAt(lat,lng){let best=null;
+  try{const pt=map.project([lng,lat]),H=map.getContainer().clientHeight;if(pt.y>H*0.38)map.easeTo({center:[lng,lat],offset:[0,-H*0.22],duration:450})}catch(e){}
+  for(const p of buildingPolys()){if(p[0]&&inRing(lng,lat,p[0])){best=p;break}}
+  if(!best){let bd=18;for(const p of buildingPolys()){const r=p[0];if(!r)continue;let sx=0,sy=0;r.forEach(q=>{sx+=q[0];sy+=q[1]});const d=dist(lat,lng,sy/r.length,sx/r.length);if(d<bd){bd=d;best=p}}}
+  selFC=best?{type:"FeatureCollection",features:[{type:"Feature",geometry:{type:"Polygon",coordinates:best},properties:{}}]}:EMPTY;
+  const s=map.getSource("cd-sel");if(s)s.setData(selFC)}
+function clearHighlight(){selFC=EMPTY;const s=map.getSource&&map.getSource("cd-sel");if(s)s.setData(EMPTY)}
+
+/* street progress chip: "9th Avenue · 3 of 18 done" */
+let streetT=0;
+function segDist(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy;let t=l?((px-ax)*dx+(py-ay)*dy)/l:0;t=Math.max(0,Math.min(1,t));const x=ax+t*dx-px,y=ay+t*dy-py;return Math.sqrt(x*x+y*y)}
+function updateStreet(){
+  const el=$("#street");if(!el)return;
+  const now=Date.now();if(now-streetT<800){clearTimeout(updateStreet.t);updateStreet.t=setTimeout(updateStreet,900);return}streetT=now;
+  const useMe=me&&now-me.t<120000;const c=useMe?me:(map.getZoom()>=16?map.getCenter():null);
+  if(!c||curTab!=="map"){el.classList.add("hidden");return}
+  let fs=[];try{fs=map.querySourceFeatures("cdomt",{sourceLayer:"transportation_name"})}catch(e){}
+  const kx=KX(c.lat),ky=KY,P=(q)=>[(q[0]-c.lng)*kx,(q[1]-c.lat)*ky];
+  const lines=[];for(const f of fs){const n=f.properties&&f.properties.name;if(!n)continue;const g=f.geometry;(g.type==="LineString"?[g.coordinates]:g.type==="MultiLineString"?g.coordinates:[]).forEach(l=>lines.push({n,l:l.map(P)}))}
+  let best=null,bd=45;for(const L of lines)for(let i=0;i<L.l.length-1;i++){const d=segDist(0,0,L.l[i][0],L.l[i][1],L.l[i+1][0],L.l[i+1][1]);if(d<bd){bd=d;best=L.n}}
+  if(!best){el.classList.add("hidden");return}
+  const segs=[];lines.forEach(L=>{if(L.n===best)for(let i=0;i<L.l.length-1;i++)segs.push([L.l[i],L.l[i+1]])});
+  const R=230;
+  const near=(lng,lat)=>{const x=(lng-c.lng)*kx,y=(lat-c.lat)*ky;if(x*x+y*y>R*R)return false;for(const s of segs)if(segDist(x,y,s[0][0],s[0][1],s[1][0],s[1][1])<32)return true;return false};
+  const bn=best.toLowerCase();
+  let done=0,left=0;houses.forEach(h=>{const sameSt=h.street&&h.street.toLowerCase()===bn&&dist(c.lat,c.lng,h.lat,h.lng)<=R;if(sameSt||near(h.lng,h.lat))done++});availPts.forEach(p=>{if(near(p[0],p[1]))left++});
+  const tot=done+left;if(!tot){el.classList.add("hidden");return}
+  $("#streetN").textContent=best;$("#streetC").textContent=`${done} of ${tot} done`;$("#streetBar").style.width=Math.round(done/tot*100)+"%";
+  el.classList.toggle("hidden",!$("#near").classList.contains("hidden"));
 }
 
 const markers=new Map();
 function pinHtml(h){
   const st=STATUS[h.status]||STATUS.left;const showNum=map.getZoom()>=17&&h.num;
   const inner=showNum?esc(h.num):(h.status==="booked"?"$":h.status==="skip"?"&times;":h.status==="talked"?"&bull;":"&#10003;");
-  return `<div><div class="pin${showNum?" num":""}" style="background:${st.color}">${inner}</div></div>`;
+  const fresh=Date.now()-h.updated<1500;
+  return `<div><div class="pin${showNum?" num":""}${fresh?" pop":""}" style="background:${st.color}">${inner}</div></div>`;
 }
 let lastZoomBand=null;
 function renderMarkers(force){
@@ -464,12 +555,23 @@ function startGPS(){
 }
 function onPos(p){
   me={lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy,t:Date.now()};
-  if(!meMarker){meMarker=mk('<div style="z-index:5;pointer-events:none"><div class="me"></div></div>',me.lat,me.lng);meMarker.getElement().style.zIndex=5}
+  if(!meMarker){meMarker=mk('<div style="pointer-events:none"><div class="me-wrap"><svg class="me-cone" id="meCone" viewBox="0 0 90 90"><defs><radialGradient id="cg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#2563eb" stop-opacity=".55"/><stop offset="1" stop-color="#2563eb" stop-opacity="0"/></radialGradient></defs><path d="M45 45 L28 3 A44 44 0 0 1 62 3 Z" fill="url(#cg)"/></svg><div class="me-pulse"></div><div class="me"></div></div></div>',me.lat,me.lng);meMarker.getElement().style.zIndex=5}
   else meMarker.setLngLat([me.lng,me.lat]);
+  if(p.coords.heading!=null&&!isNaN(p.coords.heading)&&p.coords.speed>0.7)setHeading(p.coords.heading);
+  updateStreet();
   if(firstFix){firstFix=false;if(!settings.lastView||settings.lastView.z<15||locateRequested)go(me.lat,me.lng,18);locateRequested=false}
   else if(follow||locateRequested){pan(me.lat,me.lng);locateRequested=false}
   checkNear();
 }
+/* compass heading for the cone */
+let headRaf=0;
+function setHeading(h){cancelAnimationFrame(headRaf);headRaf=requestAnimationFrame(()=>{const c=document.getElementById("meCone");if(c){c.style.setProperty("--hd",(h-map.getBearing())+"deg");c.classList.add("on")}})}
+function onOrient(e){let h=null;if(e.webkitCompassHeading!=null)h=e.webkitCompassHeading;else if(e.absolute&&e.alpha!=null)h=360-e.alpha;if(h!=null)setHeading(h)}
+let compassOn=false;
+function startCompass(){if(compassOn)return;
+  const D=window.DeviceOrientationEvent;if(!D)return;
+  if(typeof D.requestPermission==="function"){D.requestPermission().then(r=>{if(r==="granted"){compassOn=true;addEventListener("deviceorientation",onOrient)}}).catch(()=>{})}
+  else{compassOn=true;addEventListener("deviceorientationabsolute",onOrient);addEventListener("deviceorientation",onOrient)}}
 function onPosErr(e){
   if(e.code===1){toast("Location is off. Turn it on in Settings › Privacy › Location Services › Safari Websites.",null,6000)}
   else if(e.code===3){/* timeout, keep watching */}
@@ -477,7 +579,7 @@ function onPosErr(e){
 }
 let locateRequested=false;
 $("#btnLocate").onclick=()=>{
-  haptic();
+  haptic();startCompass();
   if(me){go(me.lat,me.lng,Math.max(map.getZoom(),18))}else{locateRequested=true;toast("Finding you…",null,1800)}
   startGPS();
 };
@@ -495,7 +597,7 @@ function checkNear(){
     curNear=n.h.id;
     $("#nearT").textContent="Already done: "+title(n.h);
     $("#nearS").textContent=STATUS[n.h.status].label+" · "+ago(n.h.updated)+" · "+ft(n.d)+" ft away";
-    el.classList.remove("hidden");
+    el.classList.remove("hidden");$("#street").classList.add("hidden");
   }else{curNear=null;el.classList.add("hidden");if(n&&n.d>settings.radius*2)dismissedNear=null}
 }
 $("#near").onclick=e=>{if(e.target.closest("#nearX")){dismissedNear=curNear;$("#near").classList.add("hidden");return}if(curNear)openHouse(curNear)};
@@ -560,7 +662,7 @@ map.on("click",e=>{
   if(f){const[lng,lat]=f.geometry.coordinates;openNew(lat,lng)}else openNew(e.lngLat.lat,e.lngLat.lng)});
 
 function sheetOpen(html){$("#sheetBody").innerHTML=html;$("#back").classList.remove("hidden");requestAnimationFrame(()=>{$("#back").classList.add("show");$("#sheet").classList.add("show")});$("#sheet").scrollTop=0}
-function sheetClose(){$("#back").classList.remove("show");$("#sheet").classList.remove("show");setTimeout(()=>$("#back").classList.add("hidden"),250);if(tmpMarker){tmpMarker.remove();tmpMarker=null}}
+function sheetClose(){clearHighlight();$("#back").classList.remove("show");$("#sheet").classList.remove("show");setTimeout(()=>$("#back").classList.add("hidden"),250);if(tmpMarker){tmpMarker.remove();tmpMarker=null}}
 $("#back").onclick=sheetClose;
 // swipe down to close
 (function(){let y0=null;const s=$("#sheet");s.addEventListener("touchstart",e=>{if(s.scrollTop<=0)y0=e.touches[0].clientY},{passive:true});
@@ -571,6 +673,7 @@ const SICON={left:'<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 
 function statusButtons(sel){return `<div class="sgrid">${ORDER.map(k=>`<button class="sbtn${sel===k?" sel":""}" data-st="${k}" style="--c:${STATUS[k].color}"><span class="si" style="background:${STATUS[k].color}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${SICON[k]}</svg></span>${STATUS[k].label}</button>`).join("")}</div>`}
 
 async function openNew(lat,lng){
+  highlightAt(lat,lng);
   if(tmpMarker)tmpMarker.remove();
   tmpMarker=mk('<div style="pointer-events:none"><div class="tmp"></div></div>',lat,lng);
   const n=nearest(lat,lng);const dup=n&&n.d<=18?n:null;
@@ -598,6 +701,7 @@ async function openNew(lat,lng){
 
 function openHouse(id){
   const h=houses.find(x=>x.id===id);if(!h)return;
+  highlightAt(h.lat,h.lng);
   if(tmpMarker){tmpMarker.remove();tmpMarker=null}
   const d=me?dist(me.lat,me.lng,h.lat,h.lng):null;
   sheetOpen(`
@@ -644,7 +748,7 @@ let curTab="map";
 function showTab(t){
   curTab=t;document.body.classList.toggle("on-map",t==="map");document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
   ["map","list","stats","set"].forEach(k=>$("#s-"+k).classList.toggle("hidden",k!==t));
-  if(t==="map")setTimeout(()=>map.resize(),50);
+  if(t==="map")setTimeout(()=>{map.resize();streetT=0;updateStreet()},50);else $("#street").classList.add("hidden");
   if(t==="list")renderList();if(t==="stats")renderStats();if(t==="set")renderSettings();
 }
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{haptic();showTab(b.dataset.tab)});
@@ -758,7 +862,7 @@ $("#btnHelp").onclick=()=>showOnb(true);
 /* ---------- onboarding ---------- */
 const standalone=window.matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
 function showOnb(again){$("#onbTip").classList.toggle("hidden",standalone);$("#onbGo").textContent=again?"Got it":"Get Started";$("#onb").classList.remove("hidden")}
-$("#onbGo").onclick=()=>{$("#onb").classList.add("hidden");if(!settings.onboarded){settings.onboarded=true;saveSettings()}startGPS()};
+$("#onbGo").onclick=()=>{startCompass();$("#onb").classList.add("hidden");if(!settings.onboarded){settings.onboarded=true;saveSettings()}startGPS()};
 
 /* ---------- render all ---------- */
 function renderAll(){
@@ -778,7 +882,7 @@ setInterval(()=>{checkNear();if(curTab==="list")renderList()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderAll()}});
 
 /* ---------- offline + updates ---------- */
-const APP_VERSION="1.5";
+const APP_VERSION="1.6";
 $("#verLbl").textContent="Version "+APP_VERSION;
 let swReg=null;
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").then(r=>swReg=r).catch(()=>{});
