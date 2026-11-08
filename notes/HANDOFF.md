@@ -1,5 +1,5 @@
 # Card Drop — status (read this first)
-**Updated:** 2026-11-08 session 4. LIVE **v2.2.2**. Full record: `HISTORY.md` (grep only). Old handoffs: `handoffs/`.
+**Updated:** 2026-11-08 session 4. LIVE **v2.2.3**. Full record: `HISTORY.md` (grep only). Old handoffs: `handoffs/`.
 
 ## Basics
 - Phone PWA for Trell's detailing business: mark houses where cards were left. Owner on iPhone. LIVE
@@ -7,7 +7,7 @@
 - One `index.html` (vanilla JS, MapLibre 5.6.1, pmtiles 3.2.1), `sw.js`, `version.json`. Data: `carddrop.v1` houses,
   `carddrop.biz.v1` {buys,jobs}, `carddrop.settings.v1` (per phone), `carddrop.sync.v1` (shared-map state).
 - Sync server: `../carddrop-sync/` (Worker `carddrop-sync` + D1 `carddrop-sync`, local git only). README there.
-- Release: bump `APP_VERSION` + `version.json` + `CACHE` in sw.js (now carddrop-v22), commit, push, poll version.json.
+- Release: bump `APP_VERSION` + `version.json` + `CACHE` in sw.js (now carddrop-v23), commit, push, poll version.json.
 - Look: dark navy theme = "app theme v2" block at END of <style>. Never use var(--ink) as a background.
 
 ## Testing
@@ -33,6 +33,13 @@
   open house → closes with toast; deleteHouse splice(-1) guard; setBiz not reset while typing.
 - D1 now has the owner's real map (team 514fe5…, 301 houses) + an empty team 112acc… (probably a double Start). Test team deleted.
 - Partner sim script: node POST /sync with {code,since,changes} (see HISTORY).
+
+## Session 4d (v2.2.3)
+- House numbers on map: symbol layer `cd-done-num` (z16.5+), `hNum()` = h.num or number parsed from addr. "Left off" pill raised (offset -27).
+- Location: Kalman predicts along GPS course when moving (no trailing), ignores late fixes; dot glides between fixes (`glideMe`).
+- Facing cone: compass wins over GPS course (GPS only if no compass for 3 s), smoothed with wrap-around, redrawn on map rotate,
+  landscape correction, skips bad iOS compass accuracy (>45). iPhone compass permission now asked on first tap anywhere (was only locate button).
+- Compass/GPS not phone-tested (math tested in node).
 
 ## Open / unverified
 - Nothing phone-tested by owner yet (multi-select, fast start, shared map, marker). Test teams deleted from D1 (0 teams).

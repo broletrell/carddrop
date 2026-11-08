@@ -36,3 +36,4 @@ Never read at session start. grep it. Older full handoffs: `handoffs/`.
 ## 2026-11-08 v2.2.1
 - Shared map polls every 5 s while open (was 45 s) for near-live partner updates. Friend-can't-see-houses report: no team existed in D1.
 - 2026-11-08 v2.2.2: two-tab test passed; fixed stale-sheet overwrite of partner edits, delete-wrong-house on partner delete, biz field reset. Owner real team created (301 houses) + one empty team.
+- 2026-11-08 v2.2.3: house numbers on map, GPS prediction + glide, compass-first smoothed facing cone, compass asks on first tap.
