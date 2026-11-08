@@ -1,9 +1,9 @@
 # Card Drop — status
 
-**Last updated:** 2026-11-07 (session 2, v1.8 live)
+**Last updated:** 2026-11-07 (session 2, v1.8.1 live)
 
 ## Status
-- LIVE v1.8 at https://broletrell.github.io/carddrop/ (public repo broletrell/carddrop, GitHub Pages on main).
+- LIVE v1.8.1 at https://broletrell.github.io/carddrop/ (public repo broletrell/carddrop, GitHub Pages on main).
   Owner installed it on iPhone via Add to Home Screen; it works.
 - Local folder: `/Users/rtb/untitled folder/carddrop` (git, remote origin set). Push uses the Mac's saved
   GitHub credential (`git credential fill`, scope repo) — never print it.
@@ -65,3 +65,4 @@
 - Before each task: one line effort level (lowest that works), then wait for "go".
 - Short, plain-language replies, few bullets, no file names/tech detail unless asked.
 - Owner is on iPhone, often away from the Mac.
+- v1.8.1: dots now from zoom 15 (`AVAIL_Z`), smaller at z15.

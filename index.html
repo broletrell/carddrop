@@ -504,7 +504,7 @@ $("#btnLayer").onclick=()=>{haptic();sheetOpen(`<div class="sh-addr">Map style</
 map.on("moveend",()=>{const c=map.getCenter();settings.lastView={lat:c.lat,lng:c.lng,z:map.getZoom()};saveSettings();refreshAvail()});
 
 /* green dots = houses not hit yet (from map building outlines) + selected-house highlight */
-const AVAIL_Z=15;const EMPTY={type:"FeatureCollection",features:[]};
+const AVAIL_Z=14;const EMPTY={type:"FeatureCollection",features:[]};
 function withOverlay(st){
   st=Object.assign({},st,{sources:Object.assign({},st.sources),layers:st.layers.slice()});
   st.sources.cdomt={type:"vector",url:"https://tiles.openfreemap.org/planet",attribution:"&copy; OpenStreetMap"};
@@ -526,11 +526,11 @@ function withOverlay(st){
   }
   st.layers.push({id:"cd-sel-fill",type:"fill",source:"cd-sel",paint:{"fill-color":"#2563eb","fill-opacity":.22}});
   st.layers.push({id:"cd-sel-line",type:"line",source:"cd-sel",paint:{"line-color":"#2563eb","line-width":3}});
-  st.layers.push({id:"cd-avail-halo",type:"circle",source:"cd-avail",minzoom:AVAIL_Z,paint:{"circle-radius":["interpolate",["linear"],["zoom"],15,4,16,6,18,10,20,13],"circle-color":"#22c55e","circle-opacity":.18}});
+  st.layers.push({id:"cd-avail-halo",type:"circle",source:"cd-avail",minzoom:AVAIL_Z,paint:{"circle-radius":["interpolate",["linear"],["zoom"],14,0,15,4,16,6,18,10,20,13],"circle-color":"#22c55e","circle-opacity":.18}});
   st.layers.push({id:"cd-avail",type:"circle",source:"cd-avail",minzoom:AVAIL_Z,paint:{
-    "circle-radius":["interpolate",["linear"],["zoom"],15,2.5,16,3.5,18,5.5,20,7.5],"circle-color":"#16a34a","circle-stroke-color":"#fff","circle-stroke-width":["interpolate",["linear"],["zoom"],15,.7,16,1,19,2]}});
+    "circle-radius":["interpolate",["linear"],["zoom"],14,1.4,15,2.5,16,3.5,18,5.5,20,7.5],"circle-color":"#16a34a","circle-stroke-color":"#fff","circle-stroke-width":["interpolate",["linear"],["zoom"],14,0,15,.7,16,1,19,2]}});
   st.layers.push({id:"cd-done",type:"circle",source:"cd-done",paint:{
-    "circle-radius":["interpolate",["linear"],["zoom"],15,2.5,16,3.5,18,5.5,20,7.5],"circle-color":["get","c"],"circle-stroke-color":"#fff","circle-stroke-width":["interpolate",["linear"],["zoom"],15,.7,16,1,19,2]}});
+    "circle-radius":["interpolate",["linear"],["zoom"],10,3.5,16,3.5,18,5.5,20,7.5],"circle-color":["get","c"],"circle-stroke-color":"#fff","circle-stroke-width":["interpolate",["linear"],["zoom"],10,1,16,1,19,2]}});
   return st;
 }
 let lastAvailFC=null,selFC=null,availPts=[];
@@ -1001,7 +1001,7 @@ setInterval(()=>{checkNear();if(curTab==="list")renderList()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderAll()}});
 
 /* ---------- offline + updates ---------- */
-const APP_VERSION="1.8.1";
+const APP_VERSION="1.8.2";
 $("#verLbl").textContent="Version "+APP_VERSION;
 let swReg=null;
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").then(r=>swReg=r).catch(()=>{});
