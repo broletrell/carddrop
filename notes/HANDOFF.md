@@ -7,11 +7,12 @@
   (Card left / Talked / Booked / Skip), auto address, duplicate warning, nearby-house banner,
   Houses list (search, filters, grouped by street), Stats, Settings (business name, warning
   distance, follow me, backup/restore JSON, CSV export, delete all), undo, onboarding, app icon, offline.
-- Not online yet: creating the public GitHub repo needs owner's OK (auto-mode blocked it).
+- Map style picker (6 styles: Street, Colorful, Clean light, Dark, Satellite, Hybrid) added 2026-11-07.
+- LIVE at https://broletrell.github.io/carddrop/ (public repo broletrell/carddrop, Pages on main).
 
 ## Older context
 - An earlier list-only version lives as a Claude artifact (claude.ai/artifact/S28T8u1Z3tvpHZUrh5nK67); doesn't sync with this.
 
 ## Next
-- Push to `broletrell/carddrop`, enable Pages, owner installs on iPhone and tests real GPS.
+- Owner installs on iPhone and tests real GPS.
 - Not phone-tested yet: real GPS, iOS share sheet for backup, home-screen install.

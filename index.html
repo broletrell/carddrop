@@ -359,18 +359,21 @@ function haptic(){try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}}
 /* ---------- map ---------- */
 const startView=settings.lastView||{lat:38.58,lng:-121.49,z:12};
 const map=L.map("map",{zoomControl:false,attributionControl:true,tap:true,maxZoom:21}).setView([startView.lat,startView.lng],startView.z);
+const E="https://server.arcgisonline.com/ArcGIS/rest/services/";
+const et=(n,o)=>L.tileLayer(E+n+"/MapServer/tile/{z}/{y}/{x}",Object.assign({maxZoom:21,maxNativeZoom:19,attribution:"&copy; Esri"},o||{}));
 const LAYERS={
-  street:L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:21,maxNativeZoom:19,attribution:"&copy; OpenStreetMap"}),
-  sat:L.layerGroup([
-    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:21,maxNativeZoom:19,attribution:"Imagery &copy; Esri"}),
-    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}",{maxZoom:21,maxNativeZoom:19,opacity:.9})
-  ])
+  street:{name:"Street",sub:"Shows house numbers",l:L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:21,maxNativeZoom:19,attribution:"&copy; OpenStreetMap"})},
+  color:{name:"Colorful",sub:"Google-style streets",l:et("World_Street_Map")},
+  light:{name:"Clean light",sub:"Simple and gray",l:L.layerGroup([et("Canvas/World_Light_Gray_Base",{maxNativeZoom:16}),et("Canvas/World_Light_Gray_Reference",{maxNativeZoom:16})])},
+  dark:{name:"Dark",sub:"For dusk and night",l:L.layerGroup([et("Canvas/World_Dark_Gray_Base",{maxNativeZoom:16}),et("Canvas/World_Dark_Gray_Reference",{maxNativeZoom:16})])},
+  sat:{name:"Satellite",sub:"Photo with roads",l:L.layerGroup([et("World_Imagery"),et("Reference/World_Transportation",{opacity:.9})])},
+  hybrid:{name:"Hybrid",sub:"Photo with street names",l:L.layerGroup([et("World_Imagery"),et("Reference/World_Transportation",{opacity:.9}),et("Reference/World_Boundaries_and_Places")])}
 };
-let tileErrs=0;
-LAYERS.street.on("tileerror",()=>{if(++tileErrs===6)toast("Map tiles are slow to load. Check your signal.")});
-function setLayer(k){Object.values(LAYERS).forEach(l=>map.removeLayer(l));LAYERS[k].addTo(map);settings.layer=k;saveSettings();$("#btnLayer").classList.toggle("on",k==="sat")}
-setLayer(settings.layer==="sat"?"sat":"street");
-$("#btnLayer").onclick=()=>{setLayer(settings.layer==="sat"?"street":"sat");toast(settings.layer==="sat"?"Satellite view":"Street view",null,1600)};
+function setLayer(k){if(!LAYERS[k])k="street";Object.values(LAYERS).forEach(x=>map.removeLayer(x.l));LAYERS[k].l.addTo(map);settings.layer=k;saveSettings();$("#btnLayer").classList.toggle("on",k!=="street")}
+let tileErrs=0;LAYERS.street.l.on("tileerror",()=>{if(++tileErrs===6)toast("Map tiles are slow to load. Check your signal.")});
+setLayer(settings.layer);
+$("#btnLayer").onclick=()=>{haptic();sheetOpen(`<div class="sh-addr">Map style</div><div class="card" style="margin-top:12px">${Object.entries(LAYERS).map(([k,x])=>`<button class="row" data-ly="${k}"><div class="m"><div class="a">${x.name}</div><div class="s">${x.sub}</div></div>${settings.layer===k?'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5 9-10"/></svg>':""}</button>`).join("")}</div>`);
+  document.querySelectorAll("[data-ly]").forEach(b=>b.onclick=()=>{setLayer(b.dataset.ly);sheetClose();toast(LAYERS[b.dataset.ly].name+" map",null,1400)})};
 map.on("moveend",()=>{const c=map.getCenter();settings.lastView={lat:c.lat,lng:c.lng,z:map.getZoom()};saveSettings();renderMarkers()});
 
 const markerLayer=L.layerGroup().addTo(map);
