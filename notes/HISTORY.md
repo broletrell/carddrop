@@ -32,3 +32,6 @@ Never read at session start. grep it. Older full handoffs: `handoffs/`.
   Tested live: conflict, delete, job, join merge, leave, offline queue, XSS-in-notes stays text. Test teams deleted.
 - "You left off here" marker (per phone, trackLast in persist).
 - Toast lifted above multi-select bar (owner screenshot).
+
+## 2026-11-08 v2.2.1
+- Shared map polls every 5 s while open (was 45 s) for near-live partner updates. Friend-can't-see-houses report: no team existed in D1.
