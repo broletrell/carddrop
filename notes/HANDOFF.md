@@ -1,5 +1,5 @@
 # Card Drop — status (read this first)
-**Updated:** 2026-11-08 session 4. LIVE **v2.2.1**. Full record: `HISTORY.md` (grep only). Old handoffs: `handoffs/`.
+**Updated:** 2026-11-08 session 4. LIVE **v2.2.2**. Full record: `HISTORY.md` (grep only). Old handoffs: `handoffs/`.
 
 ## Basics
 - Phone PWA for Trell's detailing business: mark houses where cards were left. Owner on iPhone. LIVE
@@ -7,7 +7,7 @@
 - One `index.html` (vanilla JS, MapLibre 5.6.1, pmtiles 3.2.1), `sw.js`, `version.json`. Data: `carddrop.v1` houses,
   `carddrop.biz.v1` {buys,jobs}, `carddrop.settings.v1` (per phone), `carddrop.sync.v1` (shared-map state).
 - Sync server: `../carddrop-sync/` (Worker `carddrop-sync` + D1 `carddrop-sync`, local git only). README there.
-- Release: bump `APP_VERSION` + `version.json` + `CACHE` in sw.js (now carddrop-v21), commit, push, poll version.json.
+- Release: bump `APP_VERSION` + `version.json` + `CACHE` in sw.js (now carddrop-v22), commit, push, poll version.json.
 - Look: dark navy theme = "app theme v2" block at END of <style>. Never use var(--ink) as a background.
 
 ## Testing
@@ -26,6 +26,13 @@
 ## Session 4b (v2.2.1)
 - Partner asked why friend couldn't see houses: D1 had 0 teams (never started a shared map). Told owner the start/join steps.
 - Near-live sync: poll every 5 s while app open (was 45 s); skips if busy/offline. Not phone-tested.
+
+## Session 4c (v2.2.2) — two-tab sync test (8795 = phone A, 8796 = phone B, separate storage)
+- Passed: start, join (both directions merge), new house reaches partner in <7 s, partner note edit, partner delete.
+- Fixed: open house sheet overwrote partner edits on Done (now saves only fields changed in the sheet); partner-deleted
+  open house → closes with toast; deleteHouse splice(-1) guard; setBiz not reset while typing.
+- D1 now has the owner's real map (team 514fe5…, 301 houses) + an empty team 112acc… (probably a double Start). Test team deleted.
+- Partner sim script: node POST /sync with {code,since,changes} (see HISTORY).
 
 ## Open / unverified
 - Nothing phone-tested by owner yet (multi-select, fast start, shared map, marker). Test teams deleted from D1 (0 teams).
