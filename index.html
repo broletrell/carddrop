@@ -285,6 +285,125 @@ body:not(.on-map) .toast{bottom:calc(var(--tab) + var(--sab) + 14px)}
 .onb .f span{opacity:.75;font-size:14px}
 .onb .go{margin-top:auto;height:56px;border-radius:16px;background:#fff;color:#0b1226;font-weight:800;font-size:17px}
 .onb .tip{text-align:center;font-size:13px;opacity:.7;margin-top:12px;line-height:1.5}
+/* ================= app theme v2: deep navy everywhere (owner asked for a modern, pro look) ================= */
+:root{
+  --bg:#0a0f1c; --panel:#121829; --panel2:#0a0f1c; --raise:#1a2135; --ink:#f1f5f9; --ink2:#94a3b8; --ink3:#64748b;
+  --line:rgba(148,163,184,.14); --line2:rgba(148,163,184,.22); --brand2:#3b82f6; --brandg:linear-gradient(180deg,#4f8ff7,#2563eb);
+  --glass:rgba(13,19,36,.86); --r:18px;
+}
+html,body{background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+.screen{background:var(--bg)}
+.screen.scroll:not(.hidden){animation:pagein .22s ease}
+@keyframes pagein{from{opacity:0;transform:translateY(6px)}}
+::selection{background:rgba(59,130,246,.35)}
+
+/* page headers: large title + frosted sticky bar */
+.ph{background:rgba(10,15,28,.86);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);padding:calc(var(--sat) + 16px) 16px 12px;border-bottom:1px solid transparent}
+.ph h1{font-size:32px;font-weight:800;letter-spacing:-.8px}
+.ph p{color:var(--ink2);font-size:14px;margin-top:3px}
+#s-stats .ph{background:rgba(10,15,28,.86)}
+.wrap{padding:2px 16px 28px}
+
+/* tab bar: frosted navy, active tab gets a soft blue pill */
+.tabs{background:rgba(11,18,38,.94);backdrop-filter:blur(20px) saturate(1.5);-webkit-backdrop-filter:blur(20px) saturate(1.5);border-top:1px solid rgba(148,163,184,.12)}
+.tabs button{gap:4px;font-size:10.5px;letter-spacing:.1px;transition:color .15s}
+.tabs button svg{box-sizing:content-box;padding:3px 16px;border-radius:14px;transition:background .2s}
+.tabs button.on svg{background:rgba(59,130,246,.18)}
+.tabs button:active svg{transform:scale(.92)}
+
+/* inputs */
+.search,.addr-edit,.notes,.dinput,.amt{background:var(--raise);border:1px solid var(--line);color:var(--ink);transition:border-color .15s,box-shadow .15s}
+.search{height:46px;border-radius:14px}
+.search input,.addr-edit,.notes,.dinput{color:var(--ink)}
+.search input::placeholder,.addr-edit::placeholder,.notes::placeholder,.amt input::placeholder,.dinput::placeholder{color:var(--ink3)}
+.addr-edit:focus,.notes:focus,.dinput:focus,.amt:focus-within,.search:focus-within{border-color:rgba(59,130,246,.7);box-shadow:0 0 0 3px rgba(59,130,246,.18)}
+.addr-edit{border-radius:14px;padding:12px 14px;font-weight:600}
+.dinput{color-scheme:dark}
+.amt b{color:var(--ink2)}
+
+/* filter chips */
+.fchip{background:var(--raise);border:1px solid var(--line);color:var(--ink2);padding:8px 14px;transition:background .15s,color .15s}
+.fchip.on{background:#f1f5f9;color:#0a0f1c;border-color:#f1f5f9}
+.chips button{background:var(--raise);border:1px solid var(--line);color:var(--ink2)}
+.chips button.on{background:var(--brand2);border-color:var(--brand2);color:#fff}
+
+/* grouped lists (Houses + Settings) */
+.group-h{color:var(--ink3);font-size:12px;letter-spacing:.8px;margin:20px 6px 8px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r)}
+.row{border-bottom:1px solid var(--line);padding:12px 14px;transition:background .12s}
+.row:active{background:var(--raise)}
+.row .a{color:var(--ink)}
+.row .s{color:var(--ink2)}
+.row .chev{color:#475569}
+.row .badge{border-radius:12px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.empty{color:var(--ink2)}
+.empty b{color:var(--ink)}
+.set .ico{border-radius:9px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.set input[type=text]{color:var(--ink2)}
+.set input[type=text]::placeholder{color:var(--ink3)}
+.switch span{background:#334155}
+.foot{color:var(--ink3)}
+
+/* map overlays: navy glass so the map page matches the rest */
+.mapbtns,body.night .mapbtns{background:var(--glass);backdrop-filter:blur(18px) saturate(1.5);-webkit-backdrop-filter:blur(18px) saturate(1.5);box-shadow:0 8px 24px rgba(2,6,23,.35),0 0 0 1px rgba(148,163,184,.14);border-radius:16px}
+.rbtn,body.night .rbtn{color:#e2e8f0}
+.rbtn+.rbtn,body.night .rbtn+.rbtn{border-top:1px solid rgba(148,163,184,.14)}
+.rbtn:active{background:rgba(148,163,184,.14)}
+.rbtn.on{color:#60a5fa}
+.mlegend{background:var(--glass);box-shadow:0 4px 14px rgba(2,6,23,.3),0 0 0 1px rgba(148,163,184,.14)}
+.street,body.night .street{background:var(--glass);color:#f1f5f9;box-shadow:0 6px 18px rgba(2,6,23,.3),0 0 0 1px rgba(148,163,184,.14)}
+.street small,body.night .street small{color:#94a3b8}
+.street .bar,body.night .street .bar{background:rgba(148,163,184,.2)}
+.near{background:rgba(42,22,6,.95);border:1px solid rgba(251,146,60,.6);color:#fed7aa;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.near b{color:#fff}
+.near .x{color:#fed7aa}
+.hint{background:var(--glass);border:1px solid rgba(148,163,184,.14);font-weight:600;padding:7px 13px;border-radius:14px}
+.selbar,.selact{background:var(--glass);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 10px 28px rgba(2,6,23,.4),0 0 0 1px rgba(148,163,184,.14)}
+
+/* bottom sheet */
+.backdrop{background:rgba(2,6,23,.55)}
+.sheet{background:var(--panel);color:var(--ink);border-top:1px solid var(--line2);border-radius:26px 26px 0 0;box-shadow:0 -12px 40px rgba(0,0,0,.45);padding:8px 18px calc(20px + var(--sab))}
+.grab{background:#334155;width:38px;margin-bottom:14px}
+.sh-addr{font-size:22px;letter-spacing:-.4px}
+.sh-sub{color:var(--ink2)}
+.sbtn{background:var(--raise);border:1px solid var(--line);color:var(--ink);box-shadow:none;height:58px;border-radius:16px}
+.sbtn.sel{background:var(--c);border-color:transparent;color:#fff;box-shadow:0 8px 20px -6px var(--c)}
+.ghost{background:var(--raise);border:1px solid var(--line);color:var(--ink);font-weight:650}
+.ghost.danger{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.3);color:#f87171}
+.danger{color:#f87171!important}
+.primary,.ghost.go{background:var(--brandg);color:#fff;box-shadow:0 8px 20px -8px rgba(37,99,235,.8);border:0}
+.primary:active,.ghost.go:active{transform:scale(.98)}
+.warn{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);color:#fecaca}
+.warn button{color:#fca5a5}
+.amt-l{color:var(--ink2)}
+.why p{color:var(--ink2)}
+.why b{color:var(--ink)}
+.why a{color:#60a5fa}
+/* history as a little timeline */
+.hist{margin-top:16px;background:var(--raise);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+.hist b{display:block;color:var(--ink);font-size:13px;margin-bottom:4px}
+.hist div{position:relative;padding:5px 0 5px 16px;color:var(--ink2)}
+.hist div:before{content:"";position:absolute;left:2px;top:11px;width:7px;height:7px;border-radius:50%;background:#3b82f6}
+.hist div+div:after{content:"";position:absolute;left:5px;top:-6px;height:16px;width:1px;background:var(--line2)}
+
+/* dialog + toast + update banner */
+.dlg{background:var(--panel);color:var(--ink);border:1px solid var(--line2);box-shadow:0 20px 50px rgba(0,0,0,.5);border-radius:22px}
+.dlg p{color:var(--ink2)}
+.dlg .btns button{background:var(--raise);color:var(--ink)}
+.dlg .btns .ok{background:var(--brandg);color:#fff}
+.dlg .btns .ok.red{background:#dc2626}
+.toast{background:rgba(26,33,53,.97);border:1px solid var(--line2);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:16px}
+.upd{background:linear-gradient(135deg,#15803d,#22c55e);border-radius:18px}
+
+/* stats page uses the same tokens */
+#s-stats{background:var(--bg)}
+.sx{background:var(--panel);border-color:var(--line)}
+.addb{background:rgba(59,130,246,.16);color:#bfdbfe;border:1px solid rgba(59,130,246,.3)}
+
+/* touch feedback on cards and buttons */
+.sbtn,.ghost,.addb,.fchip,.chips button,.selbtns button,.seg button,.selmode button{transition:transform .12s ease,background .15s,color .15s}
+.fchip:active,.chips button:active,.seg button:active{transform:scale(.96)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body class="on-map">
@@ -407,6 +526,7 @@ body:not(.on-map) .toast{bottom:calc(var(--tab) + var(--sab) + 14px)}
   <div class="f"><div class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M6 11h7"/></svg></div><div><b>Green dots = not hit yet</b><span>Zoom in to street level. Every house you haven't carded shows a green dot.</span></div></div>
   <div class="f"><div class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><path d="M12 21s-7-6.2-7-12a7 7 0 1 1 14 0c0 5.8-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg></div><div><b>Tap a house to mark it</b><span>Card left, Talked, Booked, or Skip. The address fills in for you.</span></div></div>
   <div class="f"><div class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/></svg></div><div><b>Get warned</b><span>when you walk up to a house you already did.</span></div></div>
+  <div class="f"><div class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.7 2.7L16.5 9.5"/></svg></div><div><b>Do a whole street at once</b><span>Tap the check button, swipe across houses, then mark them all.</span></div></div>
   <button class="go" id="onbGo">Get Started</button>
   <div class="tip" id="onbTip">Tip: In Safari tap Share, then "Add to Home Screen" to install it like an app.</div>
 </div>
@@ -935,7 +1055,7 @@ function openHouse(id){
       <button class="ghost" id="hShow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 21s-7-6.2-7-12a7 7 0 1 1 14 0c0 5.8-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>Show on map</button>
     </div>
     <div class="sh-actions"><button class="ghost danger" id="hDel"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>Delete</button>
-      <button class="ghost" id="hDone" style="background:var(--ink);color:#fff">Done</button></div>
+      <button class="ghost go" id="hDone">Done</button></div>
     <div class="hist"><b>History</b>${h.history.slice().reverse().map(x=>`<div>${STATUS[x.s]?STATUS[x.s].label:x.s} — ${fmtDate(x.t)}</div>`).join("")}</div>`);
   const saveText=()=>{const a=$("#hAddr").value.trim(),n=$("#hNotes").value.trim();let ch=false;
     if(a!==h.addr){h.addr=a;const m=a.match(/^(\d+[A-Za-z]?)\s+(.*)$/);h.num=m?m[1]:"";h.street=m?m[2]:a;ch=true}
@@ -988,7 +1108,7 @@ function renderList(){
   const q=$("#q").value.trim().toLowerCase();
   let list=houses.filter(h=>(filter==="all"||h.status===filter)&&(!q||(h.addr+" "+h.notes+" "+h.city).toLowerCase().includes(q)));
   $("#listSub").textContent=houses.length+(houses.length===1?" house":" houses")+" tracked";
-  if(!houses.length){$("#list").innerHTML=`<div class="empty"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#b8c0cf" stroke-width="1.6" style="margin:auto"><path d="M3 10.5 12 3l9 7.5V21H3z"/><path d="M9 21v-6h6v6"/></svg><b>No houses yet</b>Go to the Map and tap "Card Left Here" at your first door.</div>`;return}
+  if(!houses.length){$("#list").innerHTML=`<div class="empty"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.6" style="margin:auto"><path d="M3 10.5 12 3l9 7.5V21H3z"/><path d="M9 21v-6h6v6"/></svg><b>No houses yet</b>Go to the Map and tap "Card Left Here" at your first door.</div>`;return}
   if(!list.length){$("#list").innerHTML=`<div class="empty"><b>No matches</b>Try a different search or filter.</div>`;return}
   // group by street
   const groups=new Map();
@@ -997,7 +1117,7 @@ function renderList(){
   $("#list").innerHTML=gs.map(([g,hs])=>`<div class="group-h">${esc(g)} · ${hs.length}</div><div class="card">${
     hs.sort((a,b)=>(parseInt(a.num)||0)-(parseInt(b.num)||0)).map(h=>`<button class="row" data-id="${h.id}">
       <div class="badge" style="background:${STATUS[h.status].color}">${esc(h.num||"•").slice(0,5)}</div>
-      <div class="m"><div class="a">${esc(title(h))}</div><div class="s">${STATUS[h.status].label} · ${ago(h.updated)}${h.notes?" · "+esc(h.notes):""}</div></div>
+      <div class="m"><div class="a">${esc(title(h))}</div><div class="s">${STATUS[h.status].label}${h.status==="booked"&&h.amount?" "+money(h.amount):""} · ${ago(h.updated)}${h.notes?" · "+esc(h.notes):""}</div></div>
       <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 6 6 6-6 6"/></svg></button>`).join("")}</div>`).join("");
   $("#list").querySelectorAll("[data-id]").forEach(b=>b.onclick=()=>openHouse(b.dataset.id));
 }
@@ -1293,7 +1413,7 @@ setInterval(()=>{checkNear();if(curTab==="list")renderList()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderAll()}});
 
 /* ---------- offline + updates ---------- */
-const APP_VERSION="1.9.2";
+const APP_VERSION="2.0.0";
 $("#verLbl").textContent="Version "+APP_VERSION;
 let swReg=null;
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").then(r=>swReg=r).catch(()=>{});
