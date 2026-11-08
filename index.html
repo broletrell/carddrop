@@ -44,29 +44,13 @@ body{position:relative}
 .maplibregl-ctrl-bottom-right{bottom:calc(var(--tab) * 0)}
 .maplibregl-marker{cursor:pointer}
 
-/* top bar on map */
-.topbar{position:absolute;left:12px;right:12px;top:calc(var(--sat) + 10px);z-index:500;display:flex;align-items:center;gap:10px;
-  background:rgba(11,18,38,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:#fff;border-radius:18px;padding:10px 12px 10px 10px;
-  box-shadow:0 8px 24px rgba(0,0,0,.25)}
-.topbar img{width:36px;height:36px;border-radius:9px}
-.topbar .t1{font-weight:700;font-size:16px;letter-spacing:.2px;line-height:1.1}
-.topbar .t2{font-size:12px;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46vw}
-.topbar .grow{flex:1;min-width:0}
-.topbar{flex-direction:column;align-items:stretch;gap:8px;padding:10px}
-.tb-head{display:flex;align-items:center;gap:10px}
-.rng{display:flex;background:rgba(255,255,255,.1);border-radius:10px;padding:2px;flex:none}
-.rng button{font-size:11px;font-weight:700;padding:6px 7px;border-radius:8px;color:rgba(255,255,255,.7)}
-.rng button.on{background:#fff;color:#0b1226}
-.tb-tog{width:26px;height:26px;display:grid;place-items:center;border-radius:8px;background:rgba(255,255,255,.1);flex:none;transition:transform .2s}
-.topbar.min .tb-tog{transform:rotate(180deg)}
-.topbar.min .tb-cards{display:none}
-.tb-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.sc{background:rgba(255,255,255,.08);border-radius:12px;padding:7px 8px;min-width:0;border-top:2px solid var(--c,#fff)}
-.sc span{display:block;font-size:10px;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sc b{display:block;font-size:19px;line-height:1.15;letter-spacing:-.3px;white-space:nowrap}
-.sc small{display:block;font-size:10px;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tb-legend{display:flex;justify-content:space-between;gap:6px;font-size:10.5px;opacity:.85;padding:0 2px}
-.tb-legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:0;border:1px solid #fff}
+/* small legend on map (map page is map only) */
+:root{--tbH:30px}
+.mlegend{position:absolute;left:12px;top:calc(var(--sat) + 10px);z-index:500;display:flex;flex-wrap:wrap;gap:4px 10px;max-width:calc(100% - 24px);
+  background:rgba(11,18,38,.82);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:#fff;border-radius:14px;padding:6px 11px;
+  font-size:11px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.2);pointer-events:none}
+.mlegend span{white-space:nowrap}
+.mlegend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:0;border:1px solid #fff}
 .amt{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1.5px solid var(--line);border-radius:14px;padding:4px 14px;margin-top:12px}
 .amt b{font-size:22px;color:var(--ink2)}
 .amt input{flex:1;border:0;background:none;font-size:22px;font-weight:700;padding:8px 0;outline:none;min-width:0;color:var(--ink)}
@@ -148,22 +132,69 @@ body.night .mapbtns{background:rgba(15,23,42,.82)}body.night .rbtn{color:#e2e8f0
 .empty{text-align:center;color:var(--ink2);padding:50px 20px}
 .empty b{display:block;color:var(--ink);font-size:17px;margin:12px 0 4px}
 
-/* stats */
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
-.stat{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px}
-.stat .k{font-size:13px;color:var(--ink2);font-weight:600}
-.stat .v{font-size:30px;font-weight:800;letter-spacing:-.5px;margin-top:4px}
-.stat .sub{font-size:12px;color:var(--ink2)}
-.stat.hero{grid-column:span 2;background:linear-gradient(135deg,#0b1226,#1248aa);color:#fff;border:0}
-.stat.hero .k,.stat.hero .sub{color:rgba(255,255,255,.75)}
-.bars{display:flex;align-items:flex-end;gap:6px;height:110px;margin-top:12px}
-.bars div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:100%;font-size:11px;color:var(--ink2)}
-.bars i{display:block;width:100%;border-radius:6px 6px 3px 3px;background:var(--brand2);min-height:3px}
-.bars em{font-style:normal;font-weight:700;color:var(--ink);font-size:11px}
-.split{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--panel2);margin:12px 0 10px}
-.legend{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;font-size:14px}
-.legend div{display:flex;align-items:center;gap:8px}
-.legend b{margin-left:auto}
+/* stats (dark page, like the owner's mockup) */
+#s-stats{background:#0a0f1c;color:#f1f5f9}
+#s-stats .ph{background:#0a0f1c}
+#s-stats .ph p{color:#8b95a9}
+body.on-stats .tabs{background:rgba(13,18,32,.97);border-top-color:#1c2438}
+body.on-stats .tabs button{color:#7c879c}
+body.on-stats .tabs button.on{color:#60a5fa}
+.sx{background:#121829;border:1px solid #1d2539;border-radius:20px;padding:14px;margin-top:14px}
+.sx-h{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.sx-h svg{color:#3b82f6;flex:none}
+.sx-h h2{margin:0;font-size:18px;font-weight:700;flex:1;min-width:0;letter-spacing:-.2px}
+.rsel{position:relative;flex:none}
+.rsel select{appearance:none;-webkit-appearance:none;background:#0e1424;border:1px solid #2a3450;color:#e2e8f0;border-radius:18px;padding:7px 28px 7px 13px;font-size:13px;font-weight:600;outline:0}
+.rsel:after{content:"";position:absolute;right:12px;top:50%;width:6px;height:6px;border-right:2px solid #9aa5bb;border-bottom:2px solid #9aa5bb;transform:translateY(-70%) rotate(45deg);pointer-events:none}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:#1a2135;border-radius:16px;padding:12px;display:flex;gap:10px;align-items:center;min-width:0}
+.tile .ti{width:34px;height:34px;flex:none;display:grid;place-items:center;color:#3b82f6}
+.tile .ti.money{background:#2dd4bf;color:#0a0f1c;border-radius:50%;font-weight:900;font-size:18px}
+.tile .tv{min-width:0;flex:1}
+.tile b{display:block;font-size:24px;font-weight:800;letter-spacing:-.5px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile span{display:block;font-size:12px;color:#aab3c5;line-height:1.25}
+.chg{font-size:12px;font-weight:700;white-space:nowrap}
+.chg.up{color:#4ade80}.chg.down{color:#f87171}.chg.flat{color:#8b95a9}
+.streak{display:flex;align-items:center;gap:12px;background:#1a2135;border-radius:16px;padding:12px;margin-top:10px}
+.streak .fl{font-size:26px;line-height:1}
+.streak b{font-size:20px;font-weight:800}
+.streak span{font-size:12px;color:#aab3c5;display:block}
+.streak .best{margin-left:auto;text-align:right}
+.est-n{font-size:40px;font-weight:800;letter-spacing:-1px;line-height:1.1;margin:2px 0 4px;display:flex;align-items:center;gap:10px}
+.est-n button{color:#9aa5bb;width:28px;height:28px;border:2px solid #4b5568;border-radius:50%;font-size:14px;font-weight:800;font-family:Georgia,serif;display:grid;place-items:center}
+.est-l{font-size:15px;color:#9aa5bb;line-height:1.35}
+.est-bar{height:12px;border-radius:6px;background:#232c43;overflow:hidden;margin:12px 0 10px;position:relative}
+.est-bar i{position:absolute;top:0;bottom:0;border-radius:6px;background:#3b82f6}
+.est-why{font-size:13px;color:#c2cad8;line-height:1.45}
+.seg{display:flex;background:#0e1424;border:1px solid #2a3450;border-radius:12px;padding:3px;margin-top:4px}
+.seg button{flex:1;font-size:13px;font-weight:700;padding:7px 4px;border-radius:9px;color:#9aa5bb}
+.seg button.on{background:#3b82f6;color:#fff}
+.ov{display:grid;grid-template-columns:repeat(3,1fr)}
+.ov>div{padding:0 10px;min-width:0}
+.ov>div:first-child{padding-left:2px}
+.ov>div+div{border-left:1px solid #2a3450}
+.ov span{display:block;font-size:12.5px;color:#aab3c5;white-space:nowrap}
+.ov b{display:block;font-size:22px;font-weight:800;letter-spacing:-.5px;margin:3px 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mix{display:flex;height:10px;border-radius:5px;overflow:hidden;background:#232c43;margin:14px 0 8px}
+.mixl{display:flex;flex-wrap:wrap;justify-content:space-between;font-size:12.5px;color:#c2cad8;gap:4px 8px}
+.mixl i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.addb{width:100%;height:46px;border-radius:14px;background:#1e3a8a;color:#dbeafe;font-weight:700;font-size:15px;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:8px}
+.addb:active{transform:scale(.98)}
+.logl{margin-top:10px}
+.logl button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 2px;border-top:1px solid #1d2539;font-size:14px;color:#d5dbe6}
+.logl button small{color:#8b95a9;font-size:12px;display:block}
+.logl button em{font-style:normal;margin-left:auto;font-weight:700;white-space:nowrap}
+.sx-note{font-size:12.5px;color:#8b95a9;margin-top:8px;line-height:1.4}
+.bars{display:flex;align-items:flex-end;gap:6px;height:110px;margin-top:4px}
+.bars div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:100%;font-size:11px;color:#8b95a9}
+.bars i{display:block;width:100%;border-radius:6px 6px 3px 3px;background:#3b82f6;min-height:3px}
+.bars em{font-style:normal;font-weight:700;color:#e2e8f0;font-size:11px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.chips button{padding:8px 13px;border-radius:18px;border:1.5px solid var(--line);font-size:14px;font-weight:600;color:var(--ink2);background:#fff}
+.chips button.on{background:var(--brand2);border-color:var(--brand2);color:#fff}
+.dinput{width:100%;border:1.5px solid var(--line);border-radius:14px;padding:11px 14px;margin-top:6px;outline:0;background:var(--panel2);color:var(--ink);font-size:17px;font-weight:600;min-height:48px}
+.why p{font-size:14px;color:var(--ink2);line-height:1.5;margin:10px 0 0}
+.why a{color:var(--brand2)}
 
 /* settings */
 .set .row{min-height:52px}
@@ -248,19 +279,7 @@ body:not(.on-map) .toast{bottom:calc(var(--tab) + var(--sab) + 14px)}
   <!-- MAP -->
   <section class="screen" id="s-map">
     <div id="map"></div>
-    <div class="topbar" id="topbar">
-      <div class="tb-head">
-        <img src="icons/icon-192.png" alt="">
-        <div class="grow">
-          <div class="t1" id="bizName">Card Drop</div>
-          <div class="t2">Mobile Detailing</div>
-        </div>
-        <div class="rng" id="rng"><button data-r="today">Today</button><button data-r="7">7d</button><button data-r="30">30d</button><button data-r="all">All</button></div>
-        <button class="tb-tog" id="tbTog" aria-label="Show or hide stats"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="m6 15 6-6 6 6"/></svg></button>
-      </div>
-      <div class="tb-cards" id="tbCards"></div>
-      <div class="tb-legend" id="tbLegend"></div>
-    </div>
+    <div class="mlegend" id="mLegend"></div>
     <div class="street hidden" id="street"><b id="streetN"></b><small id="streetC"></small><div class="bar"><i id="streetBar"></i></div></div>
     <div class="near hidden" id="near">
       <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></div>
@@ -290,7 +309,7 @@ body:not(.on-map) .toast{bottom:calc(var(--tab) + var(--sab) + 14px)}
 
   <!-- STATS -->
   <section class="screen scroll hidden" id="s-stats">
-    <div class="ph"><h1>Stats</h1><p>How your routes are going</p></div>
+    <div class="ph"><h1>Stats</h1><p>How your cards are paying off</p></div>
     <div class="wrap" id="stats"></div>
   </section>
 
@@ -396,7 +415,12 @@ function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(houses))}catch(e){toast("Couldn't save. Phone storage may be full.")}}
 function saveSettings(){try{localStorage.setItem(SKEY,JSON.stringify(settings))}catch(e){}}
 let houses=load(KEY,[]); if(!Array.isArray(houses))houses=[];
-let settings=Object.assign({biz:"",near:true,radius:25,follow:false,layer:"auto",onboarded:false,lastBackup:0,lastView:null},load(SKEY,{}));
+let settings=Object.assign({biz:"",near:true,radius:25,follow:false,layer:"auto",onboarded:false,lastBackup:0,lastView:null,sRange:"30",cRange:"all",oRange:"all",estDays:14},load(SKEY,{}));
+/* card purchases {id,t,qty,cost} and jobs that didn't come from a card {id,t,amount,source,note} */
+const BKEY="carddrop.biz.v1";
+let biz=load(BKEY,{});if(!biz||typeof biz!=="object")biz={};
+if(!Array.isArray(biz.buys))biz.buys=[];if(!Array.isArray(biz.jobs))biz.jobs=[];
+function persistBiz(){try{localStorage.setItem(BKEY,JSON.stringify(biz))}catch(e){toast("Couldn't save. Phone storage may be full.")}}
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 
 /* ---------- helpers ---------- */
@@ -833,7 +857,7 @@ function confirmDlg(t,p,ok,red){return new Promise(res=>{
 /* ---------- tabs ---------- */
 let curTab="map";
 function showTab(t){
-  curTab=t;document.body.classList.toggle("on-map",t==="map");document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
+  curTab=t;document.body.classList.toggle("on-map",t==="map");document.body.classList.toggle("on-stats",t==="stats");document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
   ["map","list","stats","set"].forEach(k=>$("#s-"+k).classList.toggle("hidden",k!==t));
   if(t==="map")setTimeout(()=>{map.resize();streetT=0;updateStreet()},50);else $("#street").classList.add("hidden");
   if(t==="list")renderList();if(t==="stats")renderStats();if(t==="set")renderSettings();
@@ -869,65 +893,217 @@ function renderList(){
 $("#q").addEventListener("input",renderList);
 
 /* ---------- stats ---------- */
-/* numbers for a time range. A "card placed" = a house you reached (not skipped), counted on its first visit. */
-function rangeStart(r){if(r==="all")return 0;if(r==="today"){const d=new Date();d.setHours(0,0,0,0);return +d}return Date.now()-(+r)*864e5}
+const DAY=864e5;
+const RANGES=[["1","1 Day"],["7","7 Days"],["14","14 Days"],["30","30 Days"],["all","All Time"]];
+const RLONG={"1":"last 24 hours","7":"last 7 days","14":"last 14 days","30":"last 30 days","all":"all time"};
+const okRange=r=>RANGES.some(x=>x[0]===r)?r:"30";
+/* time window [from,to) for a range; prev=true gives the same-length window just before it (none for All Time) */
+function win(r,prev){if(r==="all")return prev?null:[0,Infinity];const n=(+r)*DAY,now=Date.now();return prev?[now-2*n,now-n]:[now-n,Infinity]}
+const inW=(t,w)=>t>=w[0]&&t<w[1];
 const lastT=(h,s)=>{let t=0;h.history.forEach(x=>{if(x.s===s&&x.t>t)t=x.t});return t};
-function calc(r){const T=rangeStart(r);let cards=0,talked=0,booked=0,rev=0,paid=0;
+/* a card was handed out at this house = it was reached at least once (not only skipped); counted on its first visit */
+const isCard=h=>h.history.some(x=>x.s!=="skip");
+function calc(w){let cards=0,talked=0,booked=0,cardRev=0,paid=0;
   for(const h of houses){
-    if(h.created>=T&&h.history.some(x=>x.s!=="skip"))cards++;
-    if(h.history.some(x=>(x.s==="talked"||x.s==="booked")&&x.t>=T))talked++;
-    if(h.status==="booked"&&lastT(h,"booked")>=T){booked++;if(h.amount){rev+=h.amount;paid++}}}
-  return {cards,talked,booked,rev,avg:paid?rev/paid:0,pct:cards?Math.round(booked/cards*100):null}}
-/* expected clients from cards still out there, using your own booking rate */
-function expected(){const all=calc("all");const open=houses.filter(h=>h.status==="left"||h.status==="talked").length;
-  if(all.cards<10||!all.booked)return {ok:false,open,cards:all.cards,booked:all.booked};
-  const rate=all.booked/all.cards;return {ok:true,open,rate,n:open*rate,rev:all.avg?open*rate*all.avg:0}}
-const RLBL={today:"today",7:"last 7 days",30:"last 30 days",all:"all time"};
-function renderTop(){
-  const r=settings.range||"today",c=calc(r);
-  document.querySelectorAll("#rng button").forEach(b=>b.classList.toggle("on",b.dataset.r===r));
-  $("#tbCards").innerHTML=`
-    <div class="sc" style="--c:${STATUS.left.color}"><span>Cards</span><b>${c.cards}</b><small>${RLBL[r]}</small></div>
-    <div class="sc" style="--c:${STATUS.talked.color}"><span>Talked</span><b>${c.talked}</b><small>${c.cards?Math.round(c.talked/c.cards*100)+"%":"&nbsp;"}</small></div>
-    <div class="sc" style="--c:${STATUS.booked.color}"><span>Clients</span><b>${c.booked}</b><small>${c.pct!=null?c.pct+"% booked":"&nbsp;"}</small></div>
-    <div class="sc" style="--c:#22c55e"><span>Revenue</span><b${money(c.rev).length>5?' style="font-size:15px;line-height:23px"':""}>${money(c.rev)}</b><small>${c.avg?"avg "+money(c.avg):"&nbsp;"}</small></div>`;
-  $("#topbar").classList.toggle("min",!!settings.statsMin);
-  requestAnimationFrame(()=>document.documentElement.style.setProperty("--tbH",$("#topbar").offsetHeight+"px"));
-}
-$("#tbLegend").innerHTML=`<span><i style="background:#16a34a"></i>Not hit</span>`+["left","talked","booked","skip"].map(k=>`<span><i style="background:${STATUS[k].color}"></i>${STATUS[k].label}</span>`).join("");
-document.querySelectorAll("#rng button").forEach(b=>b.onclick=()=>{haptic();settings.range=b.dataset.r;saveSettings();renderTop();if(curTab==="stats")renderStats()});
-$("#tbTog").onclick=()=>{haptic();settings.statsMin=!settings.statsMin;saveSettings();renderTop()};
+    if(isCard(h)&&inW(h.created,w))cards++;
+    if(h.history.some(x=>(x.s==="talked"||x.s==="booked")&&inW(x.t,w)))talked++;
+    if(h.status==="booked"&&inW(lastT(h,"booked"),w)){booked++;if(h.amount){cardRev+=h.amount;paid++}}}
+  let jobs=0,jobRev=0,jobPaid=0;for(const j of biz.jobs)if(inW(j.t,w)){jobs++;if(j.amount){jobRev+=j.amount;jobPaid++}}
+  let bought=0,spent=0;for(const b of biz.buys)if(inW(b.t,w)){bought+=b.qty||0;spent+=b.cost||0}
+  const rev=cardRev+jobRev,np=paid+jobPaid;
+  return {cards,talked,booked,cardRev,jobs,jobRev,clients:booked+jobs,rev,avg:np?rev/np:0,bought,spent}}
+/* change vs the previous period, only from real numbers */
+function chg(cur,prev){if(prev==null)return"";
+  if(prev>0){const p=Math.round((cur-prev)/prev*100);return `<span class="chg ${p>0?"up":p<0?"down":"flat"}">${p>0?"↑ +"+p:p<0?"↓ "+p:"0"}%</span>`}
+  return cur>0?`<span class="chg up">↑ new</span>`:""}
+const money2=n=>"$"+(Math.round((n||0)*100)/100).toLocaleString(undefined,{minimumFractionDigits:(n||0)%1?2:0,maximumFractionDigits:2});
+const noon=t=>{const d=new Date(t);d.setHours(12,0,0,0);return +d};
+/* streak = days in a row with at least one card handed out. Today without cards yet doesn't break it. */
+function streak(){
+  const days=[...new Set(houses.filter(isCard).map(h=>noon(h.created)))].sort((a,b)=>a-b);
+  const set=new Set(days);let best=0,run=0,prev=null;
+  for(const d of days){run=prev!=null&&Math.round((d-prev)/DAY)===1?run+1:1;if(run>best)best=run;prev=d}
+  const d=new Date(noon(Date.now()));const today=set.has(+d);if(!today)d.setDate(d.getDate()-1);
+  let cur=0;while(set.has(noon(+d))){cur++;d.setDate(d.getDate()-1)}
+  return {cur,best,today}}
+
+/* Expected clients.
+   Baseline: business cards / door hangers for home services get roughly 1-4% response, ~2% typical
+   (sources listed in notes/HANDOFF.md and in the app's info sheet).
+   Timing: most calls come in the first week or two, with a long tail. Modeled as F(d)=1-exp(-d/10):
+   about 50% of eventual calls by day 7, 75% by day 14, 95% by day 30.
+   Blending: industry baseline counts like 150 "virtual" cards. Your own cards (weighted by how much
+   time they've had to respond) and bookings pull the rate toward your real number as data grows. */
+const BASE_RATE=0.02,PRIOR_CARDS=150,TAU=10;
+const F=d=>1-Math.exp(-Math.max(0,d)/TAU);
+function expected(days){
+  const now=Date.now();let eff=0,booked=0;const open=[];
+  for(const h of houses){if(!isCard(h))continue;const age=(now-h.created)/DAY;eff+=F(age);
+    if(h.status==="booked")booked++;else if(h.status==="left"||h.status==="talked")open.push(age)}
+  const a=booked+BASE_RATE*PRIOR_CARDS,b=Math.max(0,eff-booked)+(1-BASE_RATE)*PRIOR_CARDS;
+  const rate=a/(a+b),sd=Math.sqrt(a*b/((a+b)**2*(a+b+1)));
+  const lo=Math.max(.003,rate-1.28*sd),hi=rate+1.28*sd; // ~80% range
+  let w=0;for(const age of open)w+=(F(age+days)-F(age))/(1-rate*F(age)); // chance each open card calls inside the window, per unit of rate
+  return {open:open.length,eff,booked,rate,lo,hi,own:eff>=5?booked/eff:null,wOwn:eff/(eff+PRIOR_CARDS),mid:rate*w,low:lo*w,high:hi*w}}
+const fmtN=x=>x<0.05?"0":x<10?x.toFixed(1).replace(/\.0$/,""):String(Math.round(x));
+const pct=r=>(Math.round(r*1000)/10)+"%";
+
+const SVG=(p,s)=>`<svg width="${s||26}" height="${s||26}" viewBox="0 0 24 24" fill="currentColor">${p}</svg>`;
+const IC={
+  bars:'<rect x="3" y="12" width="3.6" height="9" rx="1"/><rect x="8.2" y="8" width="3.6" height="13" rx="1"/><rect x="13.4" y="10" width="3.6" height="11" rx="1"/><rect x="18.6" y="3" width="3.6" height="18" rx="1"/>',
+  card:'<path fill-rule="evenodd" d="M4 4h16a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H4a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3zm1.5 6a1 1 0 0 0 0 2h8a1 1 0 0 0 0-2zm0 3.5a1 1 0 0 0 0 2h5a1 1 0 0 0 0-2z"/>',
+  talk:'<path d="M12 3c5.5 0 10 3.7 10 8.3s-4.5 8.3-10 8.3c-1.2 0-2.3-.2-3.4-.5L3.5 21l1.5-4.2C3.1 15.3 2 13.4 2 11.3 2 6.7 6.5 3 12 3z"/>',
+  people:'<circle cx="12" cy="6.5" r="3.5"/><circle cx="5" cy="8.5" r="2.6"/><circle cx="19" cy="8.5" r="2.6"/><path d="M5.5 21v-2.5A5.5 5.5 0 0 1 11 13h2a5.5 5.5 0 0 1 5.5 5.5V21z"/><path d="M4 13.2A4.2 4.2 0 0 0 0 17.4V20h4v-1.5c0-2 .7-3.8 1.9-5.2-.6-.1-1.2-.1-1.9-.1zM20 13.2c-.7 0-1.3 0-1.9.1 1.2 1.4 1.9 3.2 1.9 5.2V20h4v-2.6a4.2 4.2 0 0 0-4-4.2z"/>',
+  target:'<path fill-rule="evenodd" d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 2.4a7.6 7.6 0 1 0 0 15.2 7.6 7.6 0 0 0 0-15.2zm0 3a4.6 4.6 0 1 1 0 9.2 4.6 4.6 0 0 1 0-9.2zm0 2.4a2.2 2.2 0 1 0 0 4.4 2.2 2.2 0 0 0 0-4.4z"/>',
+  box:'<path d="M12 2 2.5 6.5 12 11l9.5-4.5z"/><path d="M2 8.2V17l9 4.5v-9zM22 8.2V17l-9 4.5v-9z"/>',
+  fire:'<path d="M12 2s5 4.6 5 10a5 5 0 0 1-10 0c0-2 .8-3.6 2-5 0 2 1 3 2 3 0-3 1-6 1-8z"/>',
+  plus:'<path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/>'
+};
+function rsel(id,val){return `<div class="rsel"><select id="${id}" aria-label="Time range">${RANGES.map(([k,l])=>`<option value="${k}"${k===val?" selected":""}>${l}</option>`).join("")}</select></div>`}
+function tile(icon,val,label,ch){return `<div class="tile">${icon==="$"?'<div class="ti money">$</div>':`<div class="ti">${SVG(IC[icon],30)}</div>`}
+  <div class="tv"><b>${val}</b><span>${label}</span>${ch?`<div>${ch}</div>`:""}</div></div>`}
+const shortDate=t=>new Date(t).toLocaleDateString(undefined,{month:"short",day:"numeric",year:Date.now()-t>300*DAY?"numeric":undefined});
 
 function renderStats(){
-  const now=Date.now(),today=dayKey(now);
-  const cardActs=[];houses.forEach(h=>h.history.forEach(x=>{if(x.s==="left")cardActs.push(x.t)}));
-  const todayN=cardActs.filter(t=>dayKey(t)===today).length;
-  const weekN=cardActs.filter(t=>now-t<7*864e5).length;
-  const cnt={};ORDER.forEach(k=>cnt[k]=houses.filter(h=>h.status===k).length);
-  const contacted=houses.filter(h=>h.status!=="skip").length;
-  const rate=contacted?Math.round(cnt.booked/contacted*100):0;
-  const streets=new Set(houses.map(h=>h.street).filter(Boolean)).size;
-  const days=[];for(let i=6;i>=0;i--){const d=new Date(now-i*864e5);const k=dayKey(d);days.push({l:d.toLocaleDateString(undefined,{weekday:"narrow"}),n:cardActs.filter(t=>dayKey(t)===k).length})}
+  const sr=settings.sRange=okRange(settings.sRange),cr=settings.cRange=okRange(settings.cRange),or=settings.oRange=okRange(settings.oRange);
+  const pair=r=>{const p=win(r,true);return [calc(win(r)),p&&calc(p)]};
+  const [s,sp]=pair(sr),[c,cp]=pair(cr),[o,op]=pair(or);
+  const P=(k,cur,prev)=>chg(cur,prev?prev[k]:null);
+  const st=streak(),ed=[7,14,30].includes(settings.estDays)?settings.estDays:14,ex=expected(ed);
+  // cards in stock: everything bought, minus cards handed out since the first logged purchase
+  let stockTxt="—",stockSub="Cards in stock",stockNote="";
+  if(biz.buys.length){const first=Math.min(...biz.buys.map(b=>b.t)),d0=new Date(first);d0.setHours(0,0,0,0);
+    const bought=biz.buys.reduce((a,b)=>a+(b.qty||0),0),used=houses.filter(h=>isCard(h)&&h.created>=+d0).length,left=bought-used;
+    stockTxt=Math.max(0,left).toLocaleString();
+    stockNote=left<0?`You've handed out ${(-left).toLocaleString()} more than you logged. Add older purchases.`:left<=50?"Running low. Time to order more.":"";}
+  const roi=c.spent>0?c.cardRev/c.spent:null;
+  const days=[];for(let i=6;i>=0;i--){const d=new Date(noon(Date.now()));d.setDate(d.getDate()-i);const k=dayKey(+d);
+    days.push({l:d.toLocaleDateString(undefined,{weekday:"narrow"}),n:houses.filter(h=>isCard(h)&&dayKey(h.created)===k).length})}
   const max=Math.max(1,...days.map(d=>d.n));
-  const tot=houses.length||1;const rc=calc(settings.range||"today"),ex=expected();
+  const basis=ex.wOwn<.15?`the industry average (about ${pct(BASE_RATE)} of cards become clients)`
+    :`a ${pct(ex.rate)} booking rate (${Math.round(ex.wOwn*100)}% from your own results, the rest industry average)`;
+  const mixTot=o.cardRev+o.jobRev;
+  const buys=biz.buys.slice().sort((a,b)=>b.t-a.t).slice(0,5),jobs=biz.jobs.slice().sort((a,b)=>b.t-a.t).slice(0,5);
+
   $("#stats").innerHTML=`
-    <div class="grid2">
-      <div class="stat hero"><div class="k">Cards left today</div><div class="v">${todayN}</div><div class="sub">${weekN} this week · ${houses.length} houses total</div></div>
-      <div class="stat"><div class="k">Booked</div><div class="v" style="color:var(--booked)">${cnt.booked}</div><div class="sub">${rate}% of houses reached${cnt.booked?" · "+money(houses.reduce((a,h)=>a+(h.status==="booked"&&h.amount||0),0))+" total":""}</div></div>
-      <div class="stat"><div class="k">Talked to</div><div class="v" style="color:var(--talked)">${cnt.talked}</div><div class="sub">Follow up soon</div></div>
-      <div class="stat"><div class="k">Streets covered</div><div class="v">${streets}</div><div class="sub">With at least one house</div></div>
-      <div class="stat"><div class="k">Skipped</div><div class="v" style="color:var(--skip)">${cnt.skip}</div><div class="sub">No soliciting, etc.</div></div>
-      <div class="stat"><div class="k">Revenue (${RLBL[settings.range||"today"]})</div><div class="v" style="color:#16a34a">${money(rc.rev)}</div><div class="sub">${rc.avg?"Avg job "+money(rc.avg):"Add $ amounts when booking"}</div></div>
-      <div class="stat hero" style="background:linear-gradient(135deg,#3b0764,#9333ea)"><div class="k">Expected clients</div>${ex.ok
-        ?`<div class="v">~${ex.n<10?ex.n.toFixed(1):Math.round(ex.n)}</div><div class="sub">From your ${ex.open} open card${ex.open==1?"":"s"} at your real ${(ex.rate*100).toFixed(ex.rate<.1?1:0)}% booking rate${ex.rev?" · about "+money(ex.rev)+" in jobs":""}</div>`
-        :`<div class="v">—</div><div class="sub">Need at least 10 cards and 1 booking to estimate (you have ${ex.cards} card${ex.cards==1?"":"s"}, ${ex.booked} booked)</div>`}</div>
+  <div class="sx">
+    <div class="sx-h">${SVG(IC.bars)}<h2>Your Performance</h2>${rsel("selS",sr)}</div>
+    <div class="tiles">
+      ${tile("card",s.cards.toLocaleString(),"Cards passed out",P("cards",s.cards,sp))}
+      ${tile("talk",s.talked.toLocaleString(),"Talked to",P("talked",s.talked,sp))}
+      ${tile("people",s.clients.toLocaleString(),"Clients",P("clients",s.clients,sp))}
+      ${tile("$",money(s.rev),"Revenue",P("rev",s.rev,sp))}
     </div>
-    <div class="group-h">Last 7 days</div>
-    <div class="stat"><div class="k">Cards left per day</div><div class="bars">${days.map(d=>`<div><em>${d.n||""}</em><i style="height:${d.n/max*80}%"></i>${d.l}</div>`).join("")}</div></div>
-    <div class="group-h">All houses</div>
-    <div class="stat"><div class="split">${ORDER.map(k=>`<div style="width:${cnt[k]/tot*100}%;background:${STATUS[k].color}"></div>`).join("")}</div>
-      <div class="legend">${ORDER.map(k=>`<div><span class="dot" style="background:${STATUS[k].color}"></span>${STATUS[k].label}<b>${cnt[k]}</b></div>`).join("")}</div></div>`;
+    <div class="streak"><div class="fl" style="color:${st.cur?"#fb923c":"#4b5568"}">${SVG(IC.fire,30)}</div>
+      <div><b>${st.cur} day${st.cur==1?"":"s"}</b><span>${st.cur?(st.today?"Streak going, cards out today":"Leave a card today to keep it going"):"Leave a card today to start a streak"}</span></div>
+      <div class="best"><b>${st.best}</b><span>Best streak</span></div></div>
+    ${sr!=="all"?`<div class="sx-note">Arrows compare the ${RLONG[sr]} to the ${RLONG[sr].replace("last ","")} before that.</div>`:""}
+  </div>
+
+  <div class="sx">
+    <div class="sx-h">${SVG(IC.target)}<h2>Estimates &amp; Insights</h2></div>
+    <div class="est-l">Expected new clients<br>(from ${ex.open.toLocaleString()} open card${ex.open==1?"":"s"}, next ${ed} days)</div>
+    <div class="est-n">${ex.open?`${fmtN(ex.low)} – ${fmtN(ex.high)}`:"—"}<button id="estWhy" aria-label="How this is worked out">i</button></div>
+    <div class="seg" id="estSeg">${[7,14,30].map(d=>`<button data-d="${d}" class="${d===ed?"on":""}">${d} days</button>`).join("")}</div>
+    <div class="est-bar"><i style="left:0;width:${Math.max(3,Math.round(ex.wOwn*100))}%"></i></div>
+    <div class="est-why">${ex.open
+      ?`Based on ${basis}, you can expect about ${fmtN(ex.low)}–${fmtN(ex.high)} new clients from cards already out, in the next ${ed} days.`
+      :`Leave some cards and this will estimate how many clients they should bring in.`}
+      <br><span style="color:#8b95a9">Blue bar: ${Math.round(ex.wOwn*100)}% of this estimate comes from your own results${ex.own!=null?` (you book ${pct(ex.own)} so far)`:""}. It grows as you log more cards and bookings.</span></div>
+  </div>
+
+  <div class="sx">
+    <div class="sx-h">${SVG(IC.box)}<h2>Cards &amp; ROI</h2>${rsel("selC",cr)}</div>
+    <div class="tiles">
+      ${tile("card",c.bought.toLocaleString(),"Cards bought",P("bought",c.bought,cp))}
+      ${tile("$",money2(c.spent),"Spent on cards",P("spent",c.spent,cp))}
+      ${tile("box",stockTxt,stockSub,"")}
+      ${tile("bars",roi!=null?(roi>=10?Math.round(roi):roi.toFixed(1))+"×":"—","Return on cards","")}
+    </div>
+    <div class="sx-note">${roi!=null
+      ?`${money(c.cardRev)} from card clients ÷ ${money2(c.spent)} on cards = ${money2(roi)} back for every $1 (${RLONG[cr]}).`
+      :biz.buys.length?`No card spending in the ${RLONG[cr]}. Pick a longer range to see your return.`:`Add your card purchases to see cost, stock and return.`}
+      ${c.bought&&c.spent?` Cost per card: ${money2(c.spent/c.bought)}.`:""}${stockNote?`<br><b style="color:#fbbf24">${stockNote}</b>`:""}</div>
+    <button class="addb" id="addBuy">${SVG(IC.plus,18)}Add cards bought</button>
+    ${buys.length?`<div class="logl">${buys.map(b=>`<button data-buy="${b.id}"><div>${b.qty.toLocaleString()} cards<small>${shortDate(b.t)}</small></div><em>${money2(b.cost)}</em></button>`).join("")}</div>`:""}
+  </div>
+
+  <div class="sx">
+    <div class="sx-h">${SVG(IC.bars)}<h2>Business Overview</h2>${rsel("selO",or)}</div>
+    <div class="ov">
+      <div><span>Total Revenue</span><b>${money(o.rev)}</b>${P("rev",o.rev,op)}</div>
+      <div><span>Total Clients</span><b>${o.clients.toLocaleString()}</b>${P("clients",o.clients,op)}</div>
+      <div><span>Avg. Ticket</span><b>${o.avg?money(o.avg):"—"}</b>${o.avg&&op&&op.avg?chg(o.avg,op.avg):""}</div>
+    </div>
+    <div class="mix">${mixTot?`<div style="width:${o.cardRev/mixTot*100}%;background:#3b82f6"></div><div style="width:${o.jobRev/mixTot*100}%;background:#2dd4bf"></div>`:""}</div>
+    <div class="mixl"><span><i style="background:#3b82f6"></i>From cards ${money(o.cardRev)} · ${o.booked}</span><span><i style="background:#2dd4bf"></i>Other jobs ${money(o.jobRev)} · ${o.jobs}</span></div>
+    <button class="addb" id="addJob">${SVG(IC.plus,18)}Add job (not from a card)</button>
+    ${jobs.length?`<div class="logl">${jobs.map(j=>`<button data-job="${j.id}"><div>${esc(j.source||"Job")}${j.note?" · "+esc(j.note):""}<small>${shortDate(j.t)}</small></div><em>${money2(j.amount)}</em></button>`).join("")}</div>`:""}
+    <div class="sx-note">Card jobs come from houses you mark Booked on the map. Add other work (referrals, repeat customers) here so totals are complete.</div>
+  </div>
+
+  <div class="sx">
+    <div class="sx-h">${SVG(IC.card)}<h2>Cards per day</h2></div>
+    <div class="bars">${days.map(d=>`<div><em>${d.n||""}</em><i style="height:${d.n/max*80}%"></i>${d.l}</div>`).join("")}</div>
+  </div>`;
+
+  [["#selS","sRange"],["#selC","cRange"],["#selO","oRange"]].forEach(([id,k])=>$(id).onchange=e=>{settings[k]=e.target.value;saveSettings();renderStats()});
+  $("#estSeg").querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{haptic();settings.estDays=+b.dataset.d;saveSettings();renderStats()});
+  $("#estWhy").onclick=()=>estSheet(ex);
+  $("#addBuy").onclick=buySheet;$("#addJob").onclick=jobSheet;
+  $("#stats").querySelectorAll("[data-buy]").forEach(b=>b.onclick=()=>removeEntry("buys",b.dataset.buy));
+  $("#stats").querySelectorAll("[data-job]").forEach(b=>b.onclick=()=>removeEntry("jobs",b.dataset.job));
 }
+
+function todayStr(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function dateToT(v){if(!v||v===todayStr())return Date.now();const [y,m,d]=v.split("-").map(Number);if(!y||!m||!d)return Date.now();return Math.min(+new Date(y,m-1,d,12),Date.now())}
+const dateBox=id=>`<input class="dinput" id="${id}" type="date" value="${todayStr()}" max="${todayStr()}">`;
+function buySheet(){
+  sheetOpen(`<div class="sh-addr">Add cards bought</div><div class="sh-sub">Used for your card costs, stock and return</div>
+    <div class="amt-l">How many cards?</div><input class="dinput" id="bQty" type="text" inputmode="numeric" placeholder="500" autocomplete="off">
+    <div class="amt-l">Total paid</div>${amtBox("bCost","")}
+    <div class="amt-l">Date bought</div>${dateBox("bDate")}
+    <button class="primary" id="bSave">Save purchase</button>`);
+  setTimeout(()=>{const i=$("#bQty");if(i)i.focus()},300);
+  $("#bSave").onclick=()=>{const qty=parseInt(String($("#bQty").value).replace(/[^0-9]/g,""),10)||0,cost=parseAmt($("#bCost").value);
+    if(!qty){toast("Enter how many cards");return}
+    biz.buys.push({id:uid(),t:dateToT($("#bDate").value),qty,cost});persistBiz();sheetClose();renderStats();haptic();
+    toast(`Added ${qty.toLocaleString()} cards${cost?" for "+money2(cost):""}`)};
+}
+const SOURCES=["Referral","Repeat customer","Social media","Google","Other"];
+function jobSheet(){
+  let src="Referral";
+  sheetOpen(`<div class="sh-addr">Add a job</div><div class="sh-sub">For work that didn't come from a card. Card jobs are added when you mark a house Booked.</div>
+    <div class="amt-l">How much?</div>${amtBox("jAmt","")}
+    <div class="amt-l">Where did it come from?</div><div class="chips" id="jSrc">${SOURCES.map(s=>`<button data-s="${s}" class="${s===src?"on":""}">${s}</button>`).join("")}</div>
+    <div class="amt-l">Date</div>${dateBox("jDate")}
+    <input class="addr-edit" id="jNote" placeholder="Note (optional), e.g. customer name" maxlength="60" style="margin-top:12px">
+    <button class="primary" id="jSave">Save job</button>`);
+  setTimeout(()=>{const i=$("#jAmt");if(i)i.focus()},300);
+  $("#jSrc").querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{src=b.dataset.s;$("#jSrc").querySelectorAll("[data-s]").forEach(x=>x.classList.toggle("on",x===b))});
+  $("#jSave").onclick=()=>{const amount=parseAmt($("#jAmt").value);if(!amount){toast("Enter the job amount");return}
+    biz.jobs.push({id:uid(),t:dateToT($("#jDate").value),amount,source:src,note:$("#jNote").value.trim()});persistBiz();sheetClose();renderStats();haptic();
+    toast(`Added ${money2(amount)} job`)};
+}
+async function removeEntry(kind,id){
+  const list=biz[kind],i=list.findIndex(x=>x.id===id);if(i<0)return;const e=list[i];
+  const what=kind==="buys"?`${e.qty.toLocaleString()} cards (${money2(e.cost)}) on ${shortDate(e.t)}`:`${money2(e.amount)} ${e.source||"job"} on ${shortDate(e.t)}`;
+  if(!await confirmDlg(kind==="buys"?"Delete this purchase?":"Delete this job?",what,"Delete",true))return;
+  list.splice(i,1);persistBiz();renderStats();
+  undoFn=()=>{biz[kind].splice(i,0,e);persistBiz();renderStats()};toast("Deleted","Undo");
+}
+function estSheet(ex){
+  sheetOpen(`<div class="sh-addr">How the estimate works</div><div class="why">
+    <p><b>1. How many cards turn into clients.</b> Business cards and door hangers for home services (detailing, window washing, lawn care) usually get about 1–4% response, with 2–3% the most common figure. We start at ${pct(BASE_RATE)}.</p>
+    <p><b>2. Your own results take over.</b> Every card you log and every house you mark Booked moves the rate toward your real booking rate. Right now ${Math.round(ex.wOwn*100)}% of the estimate is based on you${ex.own!=null?` (your rate so far: ${pct(ex.own)})`:""}. Around 150 cards that have had time to respond, it's half yours.</p>
+    <p><b>3. When people call.</b> Most calls come in the first week or two, then trickle in for months. We assume about half of all calls in week 1, three quarters by day 14, nearly all by day 30. Older cards have already had most of their chance, so they count for less.</p>
+    <p><b>4. A range, not one number.</b> The low and high numbers cover the likely spread (about 80% sure). Current rate range: ${pct(ex.lo)} to ${pct(ex.hi)}.</p>
+    <p style="font-size:12.5px">Sources: <a href="https://www.4over4.com/statistics/door-hanger-advertising-effectiveness-data" target="_blank" rel="noopener">4OVER4 door hanger stats</a>, <a href="https://www.doorhangerswork.com/understanding-door-hanger-response-rates/" target="_blank" rel="noopener">Direct to Door response rates</a>, <a href="https://dma.org.uk/article/what-is-the-response-rate-from-leaflet-distribution" target="_blank" rel="noopener">UK DMA door drop response</a>, <a href="https://community.windowcleaner.com/t/doorhanger-response-rate-not-eddm-but-doorhangers-only/40700?page=2" target="_blank" rel="noopener">window cleaner forum (about 2 jobs per 75 hangers)</a>. Most published numbers come from printers, so we use the middle of the range, not the top.</p>
+    </div><button class="primary" id="whyOk">Got it</button>`);
+  $("#whyOk").onclick=sheetClose;
+}
+
+$("#mLegend").innerHTML=`<span><i style="background:#16a34a"></i>Not hit</span>`+ORDER.map(k=>`<span><i style="background:${STATUS[k].color}"></i>${STATUS[k].label}</span>`).join("");
 
 /* ---------- settings ---------- */
 const RADII=[[15,"50 ft"],[25,"80 ft"],[40,"130 ft"],[60,"200 ft"]];
@@ -936,7 +1112,7 @@ function renderSettings(){
   $("#setRadius").textContent=(RADII.find(r=>r[0]===settings.radius)||[0,ft(settings.radius)+" ft"])[1];
   $("#lastBackup").textContent=settings.lastBackup?"Last backup "+ago(settings.lastBackup):"Never backed up";
 }
-$("#setBiz").addEventListener("input",e=>{settings.biz=e.target.value.trim();saveSettings();$("#bizName").textContent=settings.biz||"Card Drop"});
+$("#setBiz").addEventListener("input",e=>{settings.biz=e.target.value.trim();saveSettings()});
 $("#setNear").onchange=e=>{settings.near=e.target.checked;saveSettings();checkNear();toast(settings.near?"Nearby warnings on":"Nearby warnings off",null,1500)};
 $("#setFollow").onchange=e=>{settings.follow=follow=e.target.checked;saveSettings();if(follow){startGPS();if(me)pan(me.lat,me.lng)}};
 $("#setRadiusBtn").onclick=()=>{const i=RADII.findIndex(r=>r[0]===settings.radius);settings.radius=RADII[(i+1)%RADII.length][0];saveSettings();renderSettings();checkNear();haptic()};
@@ -950,8 +1126,8 @@ async function shareOrDownload(name,text,type){
 }
 const stamp=()=>new Date().toISOString().slice(0,10);
 $("#btnBackup").onclick=async()=>{
-  if(!houses.length){toast("Nothing to back up yet");return}
-  const ok=await shareOrDownload(`carddrop-backup-${stamp()}.json`,JSON.stringify({app:"carddrop",v:1,saved:Date.now(),houses},null,1),"application/json");
+  if(!houses.length&&!biz.buys.length&&!biz.jobs.length){toast("Nothing to back up yet");return}
+  const ok=await shareOrDownload(`carddrop-backup-${stamp()}.json`,JSON.stringify({app:"carddrop",v:2,saved:Date.now(),houses,buys:biz.buys,jobs:biz.jobs},null,1),"application/json");
   if(ok){settings.lastBackup=Date.now();saveSettings();renderSettings();toast("Backup ready. Save it to Files or iCloud Drive.")}
 };
 $("#btnCsv").onclick=async()=>{
@@ -966,10 +1142,16 @@ $("#fileIn").onchange=async e=>{
   const f=e.target.files[0];e.target.value="";if(!f)return;
   try{
     const j=JSON.parse(await f.text());const list=Array.isArray(j)?j:j.houses;if(!Array.isArray(list))throw 0;
+    // card purchases + other jobs (backups from v1.9+)
+    let extra=0;const num=v=>{const n=+v;return isFinite(n)&&n>0?n:0};
+    [["buys",x=>({id:String(x.id),t:+x.t,qty:Math.round(num(x.qty)),cost:parseAmt(x.cost)})],["jobs",x=>({id:String(x.id),t:+x.t,amount:parseAmt(x.amount),source:String(x.source||"Other").slice(0,30),note:String(x.note||"").slice(0,60)})]].forEach(([k,clean])=>{
+      if(!Array.isArray(j[k]))return;const have=new Set(biz[k].map(x=>x.id));
+      for(const x of j[k]){if(!x||!x.id||have.has(String(x.id))||!(+x.t>0))continue;biz[k].push(clean(x));have.add(String(x.id));extra++}});
+    if(extra)persistBiz();
     const ids=new Set(houses.map(h=>h.id));let added=0;
     for(const h of list){if(!h||typeof h.lat!=="number"||typeof h.lng!=="number"||ids.has(h.id))continue;
       houses.push({id:h.id||uid(),lat:h.lat,lng:h.lng,status:STATUS[h.status]?h.status:"left",addr:String(h.addr||""),num:String(h.num||""),street:String(h.street||""),city:String(h.city||""),notes:String(h.notes||""),amount:parseAmt(h.amount),created:+h.created||Date.now(),updated:+h.updated||Date.now(),history:Array.isArray(h.history)?h.history:[{s:h.status||"left",t:+h.updated||Date.now()}]});added++}
-    persist();renderAll();toast(added?`Restored ${added} house${added==1?"":"s"}`:"No new houses in that backup");
+    persist();renderAll();toast(added||extra?`Restored ${added} house${added==1?"":"s"}${extra?` + ${extra} purchase/job record${extra==1?"":"s"}`:""}`:"Nothing new in that backup");
   }catch(err){toast("That file isn't a Card Drop backup")}
 };
 $("#btnClear").onclick=async()=>{
@@ -986,12 +1168,10 @@ $("#onbGo").onclick=()=>{startCompass();$("#onb").classList.add("hidden");if(!se
 
 /* ---------- render all ---------- */
 function renderAll(){
-  renderTop();
   renderMarkers();checkNear();refreshAvail();
   $("#hint").classList.toggle("hidden",houses.length>2);
   if(curTab==="list")renderList();if(curTab==="stats")renderStats();if(curTab==="set")renderSettings();
 }
-$("#bizName").textContent=settings.biz||"Card Drop";
 renderAll();
 if(!settings.onboarded)showOnb(false);else startGPS();
 // backup reminder every 2 weeks once there's data
@@ -1001,7 +1181,7 @@ setInterval(()=>{checkNear();if(curTab==="list")renderList()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderAll()}});
 
 /* ---------- offline + updates ---------- */
-const APP_VERSION="1.8.2";
+const APP_VERSION="1.9.0";
 $("#verLbl").textContent="Version "+APP_VERSION;
 let swReg=null;
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").then(r=>swReg=r).catch(()=>{});
