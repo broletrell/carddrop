@@ -797,12 +797,15 @@ function withOverlay(st){
   if(ovReady){
     st.sources.ov={type:"vector",url:"pmtiles://"+ovUrl(ovRel),attribution:"&copy; Overture Maps"};
     const P=PAL[curStyle==="night"?"night":"day"],photo=curStyle==="sat"||curStyle==="hybrid";
+    st.layers=st.layers.filter(l=>l.id!=="housenum"); // our address dots carry the numbers now
     const at=st.layers.findIndex(l=>l.id==="bld");const add=[];
     if(!photo&&curStyle!=="classic"){
       add.push({id:"ov-bld",type:"fill",source:"ov","source-layer":"building",minzoom:13,paint:{"fill-color":P.bld,"fill-opacity":["interpolate",["linear"],["zoom"],13,0,14.5,1]}});
       add.push({id:"ov-bld-line",type:"line",source:"ov","source-layer":"building",minzoom:16,paint:{"line-color":P.bldLine,"line-width":["interpolate",["linear"],["zoom"],16,.5,19,1.4]}});
     }else if(curStyle==="classic")add.push({id:"ov-bld",type:"fill",source:"ov","source-layer":"building",minzoom:14,paint:{"fill-color":"#dcd6cc","fill-outline-color":"#c8bfb2"}});
     add.push({id:"ov-hn",type:"fill",source:"ov","source-layer":"building",minzoom:AVAIL_Z,paint:{"fill-opacity":0}});
+    st.sources.ova={type:"vector",url:"pmtiles://"+ovUrl(ovRel).replace("buildings.pmtiles","addresses.pmtiles"),attribution:"&copy; OpenAddresses"};
+    add.push({id:"ova-pts",type:"circle",source:"ova","source-layer":"address",minzoom:AVAIL_Z,paint:{"circle-radius":0,"circle-opacity":0,"circle-stroke-width":0}});
     if(at>=0)st.layers.splice(at,0,...add);else{const c=st.layers.findIndex(l=>l.id==="cd-hn");st.layers.splice(c,0,...add)}
   }
   st.layers.push({id:"cd-sel-fill",type:"fill",source:"cd-sel",paint:{"fill-color":"#2563eb","fill-opacity":.22}});
@@ -846,7 +849,7 @@ async function ovCheckRelease(){try{
 map.on("style.load",()=>setTimeout(refreshAvail,300));let availOnce=false,idleTries=0;map.on("movestart",()=>{idleTries=0});
 map.on("idle",()=>{if(!availOnce||(!availPts.length&&map.getZoom()>=AVAIL_Z&&idleTries<3)){availOnce=true;idleTries++;refreshAvail()}});
 let availT=null;
-map.on("sourcedata",e=>{if((e.sourceId==="cdomt"||e.sourceId==="ov")&&e.isSourceLoaded){clearTimeout(availT);availT=setTimeout(refreshAvail,150)}});
+map.on("sourcedata",e=>{if((e.sourceId==="cdomt"||e.sourceId==="ov"||e.sourceId==="ova")&&e.isSourceLoaded){clearTimeout(availT);availT=setTimeout(refreshAvail,150)}});
 const KX=lat=>111320*Math.cos(lat*Math.PI/180),KY=110540;
 function buildingPolys(){let fs=[];try{fs=map.querySourceFeatures("cdomt",{sourceLayer:"building"})}catch(e){}
   if(ovReady&&map.getSource("ov")){try{fs=fs.concat(map.querySourceFeatures("ov",{sourceLayer:"building"}))}catch(e){}}
@@ -860,11 +863,31 @@ function numFor(g,ring,lng,lat,kx,ky){if(!g.size)return "";const gx=Math.floor(l
   for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++){const c=g.get((gx+i)+","+(gy+j));if(!c)continue;
     for(const q of c){if(inRing(q[0],q[1],ring))return q[2];const d=((q[0]-lng)*kx)**2+((q[1]-lat)*ky)**2;if(d<bd){bd=d;best=q[2]}}}
   return best}
+const tc=x=>String(x||"").toLowerCase().replace(/\b[a-z]/g,c=>c.toUpperCase()); // "ROMAN OAK WAY" -> "Roman Oak Way"
+// every address near the screen: county address points (Overture/OpenAddresses), plus OpenStreetMap ones they don't have
+function addrPts(){const seen=new Set(),out=[];let fs=[];
+  if(ovReady&&map.getSource("ova")){try{fs=map.querySourceFeatures("ova",{sourceLayer:"address"})}catch(e){}}
+  for(const f of fs){const c=f.geometry&&f.geometry.type==="Point"&&f.geometry.coordinates,pr=f.properties||{},n=String(pr.number||"").trim();if(!c||!n)continue;
+    const k=n+"|"+(pr.street||"");if(seen.has(k))continue;seen.add(k);out.push({lng:c[0],lat:c[1],n:n.slice(0,6),s:tc(pr.street)})}
+  const g=houseNumPts();if(g.size){const near=bucket(out);
+    for(const c of g.values())for(const q of c){if(!near(q[0],q[1],15).some(a=>a.n===q[2])){out.push({lng:q[0],lat:q[1],n:q[2],s:""})}}}
+  return out}
+// quick "what's near this point" lookup over ~40 m cells
+function bucket(list){const g=new Map();for(const a of list){const k=Math.floor(a.lng*2500)+","+Math.floor(a.lat*2500);(g.get(k)||g.set(k,[]).get(k)).push(a)}
+  return (lng,lat,m)=>{const gx=Math.floor(lng*2500),gy=Math.floor(lat*2500),r=[];for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++){const c=g.get((gx+i)+","+(gy+j));if(c)for(const a of c)if(m==null||dist(lat,lng,a.lat,a.lng)<=m)r.push(a)}return r}}
 function refreshAvail(){
   const src=map.getSource&&map.getSource("cd-avail");if(!src)return;
   if(map.getZoom()<AVAIL_Z){availPts=[];lastAvailFC=EMPTY;src.setData(EMPTY);updateStreet();return}
   const grid=new Map(),out=[];const kx=KX(map.getCenter().lat),ky=KY;availPts=[];
-  const hn=houseNumPts();
+  const hn=houseNumPts(),A=addrPts(),nearA=bucket(A);
+  const isHit=(lat,lng)=>{for(const h of houses){if(Math.abs(h.lat-lat)<.0003&&Math.abs(h.lng-lng)<.0004&&dist(lat,lng,h.lat,h.lng)<14)return true}return false};
+  // marked houses with no number yet: take it from the closest address (within 15 m)
+  let fixed=0;for(const h of houses){if(hNum(h))continue;const c=nearA(h.lng,h.lat,15);if(!c.length)continue;
+    const a=c.reduce((b,x)=>dist(h.lat,h.lng,x.lat,x.lng)<dist(h.lat,h.lng,b.lat,b.lng)?x:b);
+    h.num=a.n;if(!h.street&&a.s)h.street=a.s;if(!h.addr&&a.s)h.addr=a.n+" "+a.s;fixed++}
+  if(fixed){persist();renderMarkers()}
+  for(const a of A){if(isHit(a.lat,a.lng))continue;availPts.push([a.lng,a.lat]);
+    out.push({type:"Feature",geometry:{type:"Point",coordinates:[a.lng,a.lat]},properties:{n:a.n,s:a.s}})}
   for(const poly of buildingPolys()){const ring=poly[0];if(!ring||ring.length<4)continue;
       const ox=ring[0][0],oy=ring[0][1];let A=0,cx=0,cy=0;for(let i=0;i<ring.length-1;i++){const x0=(ring[i][0]-ox)*kx,y0=(ring[i][1]-oy)*ky,x1=(ring[i+1][0]-ox)*kx,y1=(ring[i+1][1]-oy)*ky,c=x0*y1-x1*y0;A+=c;cx+=(x0+x1)*c;cy+=(y0+y1)*c}
       A/=2;if(Math.abs(A)<55||Math.abs(A)>900)continue; // houses only: skip sheds/garages and big buildings
@@ -872,8 +895,8 @@ function refreshAvail(){
       const gx=Math.floor(lng*kx/8),gy=Math.floor(lat*ky/8);let dup=false;
       for(let i=-1;i<=1&&!dup;i++)for(let j=-1;j<=1;j++){const c=grid.get((gx+i)+","+(gy+j));if(c&&c.some(q=>((q[0]-lng)*kx)**2+((q[1]-lat)*ky)**2<64)){dup=true;break}}
       if(dup)continue;const gk=gx+","+gy;(grid.get(gk)||grid.set(gk,[]).get(gk)).push([lng,lat]);
-      let hit=false;for(const h of houses){if(Math.abs(h.lat-lat)<.0003&&Math.abs(h.lng-lng)<.0004&&dist(lat,lng,h.lat,h.lng)<14){hit=true;break}}
-      if(!hit){availPts.push([lng,lat]);out.push({type:"Feature",geometry:{type:"Point",coordinates:[lng,lat]},properties:{n:numFor(hn,ring,lng,lat,kx,ky)}})}}
+      if(nearA(lng,lat,12).length||nearA(lng,lat,40).some(a=>inRing(a.lng,a.lat,ring)))continue; // this house already has its address dot
+      if(!isHit(lat,lng)){availPts.push([lng,lat]);out.push({type:"Feature",geometry:{type:"Point",coordinates:[lng,lat]},properties:{n:numFor(hn,ring,lng,lat,kx,ky)}})}}
   lastAvailFC={type:"FeatureCollection",features:out};src.setData(lastAvailFC);updateStreet();
 }
 /* highlight the house outline under a point */
@@ -1145,7 +1168,7 @@ map.on("click",e=>{
   let d=null;try{d=map.queryRenderedFeatures(box,{layers:["cd-done"]})[0]}catch(err){}
   if(d&&d.properties&&d.properties.id){openHouse(d.properties.id);return}
   let f=null;try{f=map.queryRenderedFeatures(box,{layers:["cd-avail"]})[0]}catch(err){}
-  if(f){const[lng,lat]=f.geometry.coordinates;openNew(lat,lng)}else openNew(e.lngLat.lat,e.lngLat.lng)});
+  if(f){const[lng,lat]=f.geometry.coordinates;openNew(lat,lng,f.properties)}else openNew(e.lngLat.lat,e.lngLat.lng)});
 
 /* ---------- multi-select: tap or swipe across houses, then mark them all at once ---------- */
 function pickFC(){const fs=[];for(const p of picks.values()){let c=null;if(p.id){const h=houses.find(x=>x.id===p.id);if(h)c=[h.lng,h.lat]}else c=[p.lng,p.lat];
@@ -1158,7 +1181,7 @@ function pickAt(pt,r){const box=[[pt.x-r,pt.y-r],[pt.x+r,pt.y+r]];
   let d=null;try{d=map.queryRenderedFeatures(box,{layers:["cd-done"]})[0]}catch(e){}
   if(d&&d.properties&&d.properties.id)return ["h:"+d.properties.id,{id:d.properties.id}];
   let f=null;try{f=map.queryRenderedFeatures(box,{layers:["cd-avail"]})[0]}catch(e){}
-  if(f){const[lng,lat]=f.geometry.coordinates;return ["p:"+lng.toFixed(6)+","+lat.toFixed(6),{lat,lng}]}
+  if(f){const[lng,lat]=f.geometry.coordinates,pr=f.properties||{};return ["p:"+lng.toFixed(6)+","+lat.toFixed(6),{lat,lng,n:pr.n||"",s:pr.s||""}]}
   return null}
 function startSelect(){if(selecting)return;selecting=true;picks.clear();sheetClose();document.body.classList.add("selecting");
   $("#selBar").classList.remove("hidden");$("#selAct").classList.remove("hidden");$("#btnSelect").classList.add("on");placeToast();
@@ -1191,7 +1214,7 @@ function applyPicks(st){
     if(p.id){const h=houses.find(x=>x.id===p.id);if(!h)continue;if(h.status===st){same++;continue}
       prev.push({h,status:h.status,updated:h.updated,history:h.history.slice()});h.status=st;h.updated=now;h.history.push({s:st,t:now})}
     else{const n=nearest(p.lat,p.lng);if(n&&n.d<8)continue;
-      const h={id:uid(),lat:p.lat,lng:p.lng,status:st,addr:"",num:"",street:"",city:"",notes:"",created:now,updated:now,history:[{s:st,t:now}]};houses.push(h);added.push(h)}}
+      const h={id:uid(),lat:p.lat,lng:p.lng,status:st,addr:p.n&&p.s?p.n+" "+p.s:"",num:p.n||"",street:p.s||"",city:"",notes:"",created:now,updated:now,history:[{s:st,t:now}]};houses.push(h);added.push(h)}}
   const n=prev.length+added.length;endSelect();
   if(!n){toast(same?`Already marked ${STATUS[st].label}`:"Nothing to change");return}
   persist();renderAll();haptic();
@@ -1220,7 +1243,9 @@ $("#back").onclick=sheetClose;
 const SICON={left:'<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 11h6M7 14h4"/>',talked:'<path d="M21 12a8 8 0 0 1-11.6 7.1L3 21l1.9-6.4A8 8 0 1 1 21 12z"/>',booked:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="m9 15 2 2 4-4"/>',skip:'<circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/>'};
 function statusButtons(sel){return `<div class="sgrid">${ORDER.map(k=>`<button class="sbtn${sel===k?" sel":""}" data-st="${k}" style="--c:${STATUS[k].color}"><span class="si" style="background:${STATUS[k].color}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${SICON[k]}</svg></span>${STATUS[k].label}</button>`).join("")}</div>`}
 
-async function openNew(lat,lng){
+async function openNew(lat,lng,hint){
+  const hn=hint&&hint.n?String(hint.n):"",hs=hint&&hint.s?String(hint.s):"";
+  const withHint=i=>{if(!hn)return i;i=Object.assign({},i||{});const st=hs||i.street||"";i.num=hn;i.street=st;i.addr=(hn+" "+st).trim();return i};
   highlightAt(lat,lng);
   if(tmpMarker)tmpMarker.remove();
   tmpMarker=mk('<div style="pointer-events:none"><div class="tmp"></div></div>',lat,lng);
@@ -1241,7 +1266,8 @@ async function openNew(lat,lng){
     const i=Object.assign({},info||{});if(typed&&typed!==(info&&info.addr)){i.addr=typed;const m=typed.match(/^(\d+[A-Za-z]?)\s+(.*)$/);i.num=m?m[1]:"";i.street=m?m[2]:typed}
     const h=addHouse(lat,lng,b.dataset.st,i,$("#nNotes").value.trim());if(b.dataset.st==="booked")askAmount(h);else sheetClose();
   });
-  info=await lookup(lat,lng);
+  if(hn){info=withHint(null);$("#nAddr").textContent=info.addr;$("#nAddrIn").value=info.addr}
+  info=withHint(await lookup(lat,lng));
   if(!$("#nAddr"))return;
   if(info&&info.addr){$("#nAddr").textContent=info.addr;if(!$("#nAddrIn").value)$("#nAddrIn").value=info.addr}
   else $("#nAddr").textContent="Address not found";
@@ -1763,7 +1789,7 @@ setInterval(()=>{checkNear();if(curTab==="list")renderList()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderAll()}});
 
 /* ---------- offline + updates ---------- */
-const APP_VERSION="2.3.0";
+const APP_VERSION="2.3.1";
 $("#verLbl").textContent="Version "+APP_VERSION;
 let swReg=null;
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").then(r=>swReg=r).catch(()=>{});

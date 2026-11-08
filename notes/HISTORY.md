@@ -44,3 +44,4 @@ Never read at session start. grep it. Older full handoffs: `handoffs/`.
 - 2026-11-08 v2.2.8: bolder accuracy-sized facing beam, keep low-accuracy compass readings, permission retry + denied help.
 - 2026-11-08 v2.2.9: fixed own-dot lag under trees (Kalman retune + catch-up snap).
 - 2026-11-08 v2.3.0: own dot no longer freezes (arrival-time filter, GPS restart on return + 15 s watchdog).
+- 2026-11-08 v2.3.1: green dots from county address points (Overture addresses) — every house gets a dot + number.

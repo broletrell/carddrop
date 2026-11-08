@@ -1,5 +1,5 @@
 # Card Drop — status (read this first)
-**Updated:** 2026-11-08 session 4. LIVE **v2.3.0**. Full record: `HISTORY.md` (grep only). Old handoffs: `handoffs/`.
+**Updated:** 2026-11-08 session 4. LIVE **v2.3.1**. Full record: `HISTORY.md` (grep only). Old handoffs: `handoffs/`.
 
 ## Basics
 - Phone PWA for Trell's detailing business: mark houses where cards were left. Owner on iPhone. LIVE
@@ -7,7 +7,7 @@
 - One `index.html` (vanilla JS, MapLibre 5.6.1, pmtiles 3.2.1), `sw.js`, `version.json`. Data: `carddrop.v1` houses,
   `carddrop.biz.v1` {buys,jobs}, `carddrop.settings.v1` (per phone), `carddrop.sync.v1` (shared-map state).
 - Sync server: `../carddrop-sync/` (Worker `carddrop-sync` + D1 `carddrop-sync`, local git only). README there.
-- Release: bump `APP_VERSION` + `version.json` + `CACHE` in sw.js (now carddrop-v30), commit, push, poll version.json.
+- Release: bump `APP_VERSION` + `version.json` + `CACHE` in sw.js (now carddrop-v31), commit, push, poll version.json.
 - Look: dark navy theme = "app theme v2" block at END of <style>. Never use var(--ink) as a background.
 
 ## Testing
@@ -86,6 +86,15 @@
 - restartGPS() on every return to the app + watchdog: no fix for 15 s while open → restart watch.
 - Tested with fake GPS in _test.html (override navigator.geolocation before document.write): future timestamp → keeps moving;
   GPS silent → restarted after ~16 s, fixes resume.
+
+## Session 4l (v2.3.1) — "every house needs a dot and number"
+- Green dots now come from Overture `addresses.pmtiles` (same release as buildings; OpenAddresses = Sacramento County, full coverage
+  verified on Roman Oak Way / River Ranch Way). Source `ova`, invisible layer `ova-pts`. addrPts(): dedupe number|street, title-case
+  street, + OSM housenumber points not within 15 m of a same-number county point. Building centroids only add a (numberless) dot
+  where no address point is inside/within 12 m. Base map "housenum" layer removed (duplicate gray numbers).
+- Marked houses with no number get one from the nearest address ≤15 m (saved + synced).
+- Tapping a green dot / multi-select uses its number + street directly (geocoder only adds city).
+- Needs pmtiles loaded (ovReady); offline/without it → old building + OSM behavior.
 
 ## Open / unverified
 - Nothing phone-tested by owner yet (multi-select, fast start, shared map, marker). Test teams deleted from D1 (0 teams).
