@@ -1,12 +1,13 @@
 // Card Drop offline support: app files load even with no signal.
-const CACHE = "carddrop-v7";
+const CACHE = "carddrop-v8";
+const TILES = "carddrop-tiles"; // kept across app updates
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png",
   "https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css", "https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
 });
 self.addEventListener("activate", e => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith("carddrop-") && k !== CACHE && k !== CACHE + "-tiles").map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith("carddrop-") && k !== CACHE && k !== TILES).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 self.addEventListener("fetch", e => {
   const req = e.request;
@@ -20,13 +21,20 @@ self.addEventListener("fetch", e => {
       .catch(() => caches.match(req).then(r => r || caches.match("index.html"))));
     return;
   }
-  // Map tiles and Leaflet: cache first, keep recent tiles for offline use.
+  // Map index files (they point at the newest tiles): network first.
+  if (url.pathname === "/planet" || url.pathname.startsWith("/styles/")) {
+    e.respondWith(fetch(req).then(r => { if (r.ok) { const copy = r.clone(); caches.open(TILES).then(c => c.put(req, copy)); } return r; })
+      .catch(() => caches.match(req)));
+    return;
+  }
+  // Map tiles, fonts and MapLibre: cache first, keep recent tiles for offline use.
   e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(r => {
-    if (r.ok || r.type === "opaque") { const copy = r.clone(); caches.open(CACHE + "-tiles").then(c => c.put(req, copy).then(() => trim(c))); }
+    if (r.ok || r.type === "opaque") { const copy = r.clone(); caches.open(TILES).then(c => c.put(req, copy).then(() => { if (++puts % 200 === 0) trim(c); })); }
     return r;
   })));
 });
 
+let puts = 0;
 // Keep the tile cache from growing forever.
 async function trim(c) {
   const keys = await c.keys();

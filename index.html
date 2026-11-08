@@ -14,12 +14,13 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" type="image/png" href="icons/icon-32.png">
+<link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css">
 <style>
 :root{
   --bg:#0b1226; --panel:#ffffff; --panel2:#f3f5fa; --ink:#0f172a; --ink2:#5b6478; --line:#e3e7ef;
   --brand:#1248aa; --brand2:#2563eb;
-  --left:#2563eb; --talked:#f59e0b; --booked:#16a34a; --skip:#64748b;
+  --left:#2563eb; --talked:#f59e0b; --booked:#9333ea; --skip:#64748b;
   --danger:#dc2626;
   --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px);
   --tab:64px;
@@ -51,12 +52,28 @@ body{position:relative}
 .topbar .t1{font-weight:700;font-size:16px;letter-spacing:.2px;line-height:1.1}
 .topbar .t2{font-size:12px;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46vw}
 .topbar .grow{flex:1;min-width:0}
-.chip-today{background:rgba(255,255,255,.12);border-radius:12px;padding:6px 10px;text-align:center;line-height:1}
-.chip-today b{display:block;font-size:18px}
-.chip-today span{font-size:10px;opacity:.75;text-transform:uppercase;letter-spacing:.5px}
+.topbar{flex-direction:column;align-items:stretch;gap:8px;padding:10px}
+.tb-head{display:flex;align-items:center;gap:10px}
+.rng{display:flex;background:rgba(255,255,255,.1);border-radius:10px;padding:2px;flex:none}
+.rng button{font-size:11px;font-weight:700;padding:6px 7px;border-radius:8px;color:rgba(255,255,255,.7)}
+.rng button.on{background:#fff;color:#0b1226}
+.tb-tog{width:26px;height:26px;display:grid;place-items:center;border-radius:8px;background:rgba(255,255,255,.1);flex:none;transition:transform .2s}
+.topbar.min .tb-tog{transform:rotate(180deg)}
+.topbar.min .tb-cards{display:none}
+.tb-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.sc{background:rgba(255,255,255,.08);border-radius:12px;padding:7px 8px;min-width:0;border-top:2px solid var(--c,#fff)}
+.sc span{display:block;font-size:10px;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sc b{display:block;font-size:19px;line-height:1.15;letter-spacing:-.3px;white-space:nowrap}
+.sc small{display:block;font-size:10px;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-legend{display:flex;justify-content:space-between;gap:6px;font-size:10.5px;opacity:.85;padding:0 2px}
+.tb-legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:0;border:1px solid #fff}
+.amt{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1.5px solid var(--line);border-radius:14px;padding:4px 14px;margin-top:12px}
+.amt b{font-size:22px;color:var(--ink2)}
+.amt input{flex:1;border:0;background:none;font-size:22px;font-weight:700;padding:8px 0;outline:none;min-width:0;color:var(--ink)}
+.amt-l{font-size:13px;font-weight:600;color:var(--ink2);margin-top:12px}
 
 /* proximity banner */
-.near{position:absolute;left:12px;right:12px;top:calc(var(--sat) + 76px);z-index:510;background:#fff7ed;border:1.5px solid #fb923c;color:#7c2d12;
+.near{position:absolute;left:12px;right:12px;top:calc(var(--sat) + var(--tbH,66px) + 18px);z-index:510;background:#fff7ed;border:1.5px solid #fb923c;color:#7c2d12;
   border-radius:16px;padding:10px 12px;display:flex;gap:10px;align-items:center;box-shadow:0 8px 24px rgba(0,0,0,.18);animation:drop .25s ease}
 .near .ic{width:34px;height:34px;border-radius:50%;background:#fb923c;color:#fff;display:grid;place-items:center;flex:none}
 .near b{display:block;font-size:14px}
@@ -87,7 +104,7 @@ body{position:relative}
 @keyframes mepulse{0%{width:22px;height:22px;opacity:.9}100%{width:80px;height:80px;opacity:0}}
 .me-cone{width:90px;height:90px;transform-origin:50% 50%;transform:translate(-50%,-50%) rotate(var(--hd,0deg));opacity:0;transition:opacity .3s}
 .me-cone.on{opacity:1}
-.street{position:absolute;left:12px;top:calc(var(--sat) + 76px);z-index:505;background:rgba(255,255,255,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:14px;padding:9px 12px;min-width:190px;max-width:70vw;box-shadow:0 6px 18px rgba(15,23,42,.16),0 0 0 .5px rgba(15,23,42,.1);animation:drop .25s ease}
+.street{position:absolute;left:12px;top:calc(var(--sat) + var(--tbH,66px) + 18px);z-index:505;background:rgba(255,255,255,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:14px;padding:9px 12px;min-width:190px;max-width:70vw;box-shadow:0 6px 18px rgba(15,23,42,.16),0 0 0 .5px rgba(15,23,42,.1);animation:drop .25s ease}
 .street b{font-size:14px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .street small{font-size:12px;color:var(--ink2)}
 .street .bar{height:5px;border-radius:3px;background:#e2e8f0;margin-top:6px;overflow:hidden}
@@ -231,13 +248,18 @@ body:not(.on-map) .toast{bottom:calc(var(--tab) + var(--sab) + 14px)}
   <!-- MAP -->
   <section class="screen" id="s-map">
     <div id="map"></div>
-    <div class="topbar">
-      <img src="icons/icon-192.png" alt="">
-      <div class="grow">
-        <div class="t1">Card Drop</div>
-        <div class="t2" id="bizName">Mobile Detailing</div>
+    <div class="topbar" id="topbar">
+      <div class="tb-head">
+        <img src="icons/icon-192.png" alt="">
+        <div class="grow">
+          <div class="t1" id="bizName">Card Drop</div>
+          <div class="t2">Mobile Detailing</div>
+        </div>
+        <div class="rng" id="rng"><button data-r="today">Today</button><button data-r="7">7d</button><button data-r="30">30d</button><button data-r="all">All</button></div>
+        <button class="tb-tog" id="tbTog" aria-label="Show or hide stats"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="m6 15 6-6 6 6"/></svg></button>
       </div>
-      <div class="chip-today"><b id="todayCount">0</b><span>Today</span></div>
+      <div class="tb-cards" id="tbCards"></div>
+      <div class="tb-legend" id="tbLegend"></div>
     </div>
     <div class="street hidden" id="street"><b id="streetN"></b><small id="streetC"></small><div class="bar"><i id="streetBar"></i></div></div>
     <div class="near hidden" id="near">
@@ -363,7 +385,7 @@ const $=s=>document.querySelector(s);
 const STATUS={
   left:  {label:"Card left", short:"Left",   color:"#2563eb"},
   talked:{label:"Talked",    short:"Talked", color:"#f59e0b"},
-  booked:{label:"Booked",    short:"Booked", color:"#16a34a"},
+  booked:{label:"Booked",    short:"Booked", color:"#9333ea"},
   skip:  {label:"Skip",      short:"Skip",   color:"#64748b"}
 };
 const ORDER=["left","talked","booked","skip"];
@@ -391,7 +413,7 @@ function haptic(){try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}}
 
 /* ---------- map ---------- */
 const startView=settings.lastView||{lat:38.58,lng:-121.49,z:12};
-const map=new maplibregl.Map({container:"map",style:"https://tiles.openfreemap.org/styles/liberty",center:[startView.lng,startView.lat],zoom:startView.z,maxZoom:21,
+const map=new maplibregl.Map({container:"map",style:{version:8,sources:{},layers:[{id:"bg",type:"background",paint:{"background-color":"#0d1424"}}]},center:[startView.lng,startView.lat],zoom:startView.z,maxZoom:21,
   dragRotate:false,pitchWithRotate:false,attributionControl:{compact:true}});
 map.touchZoomRotate.disableRotation();window.cdMap=map;
 const go=(lat,lng,z)=>map.flyTo({center:[lng,lat],zoom:z==null?map.getZoom():z,speed:1.4,curve:1.3,essential:true});
@@ -405,10 +427,10 @@ function raster(names){const st={version:8,glyphs:"https://tiles.openfreemap.org
 const OFM="https://tiles.openfreemap.org/styles/";
 const PAL={
   day:{bg:"#f3f5f8",park:"#e1ecdf",wood:"#d9e7d6",water:"#cbdcee",waterway:"#b6cde6",cas:"#d5dbe4",road:"#ffffff",major:"#ffffff",majorCas:"#c6cdd8",hwy:"#fbeed8",hwyCas:"#e6d3b3",path:"#c9d0da",rail:"#c3c9d3",bld:"#e4e8ee",bldLine:"#c7ced9",lbl:"#334155",lblHalo:"#ffffff",place:"#0f172a",num:"#8a94a6"},
-  night:{bg:"#0d1424",park:"#122019",wood:"#13241c",water:"#0a1a30",waterway:"#0d2440",cas:"#0a101d",road:"#253049",major:"#2d3a57",majorCas:"#0a101d",hwy:"#3a3a52",hwyCas:"#0a101d",path:"#2a3550",rail:"#2a3448",bld:"#1a2336",bldLine:"#2b3852",lbl:"#c3cddc",lblHalo:"#0d1424",place:"#e2e8f0",num:"#7d8aa3"}
+  night:{bg:"#0d1424",park:"#122019",wood:"#13241c",water:"#0a1a30",waterway:"#0d2440",cas:"#0a101d",road:"#2e3b5a",major:"#2d3a57",majorCas:"#0a101d",hwy:"#3a3a52",hwyCas:"#0a101d",path:"#2a3550",rail:"#2a3448",bld:"#1a2336",bldLine:"#2b3852",lbl:"#c3cddc",lblHalo:"#0d1424",place:"#e2e8f0",num:"#7d8aa3"}
 };
 function brandStyle(m){const P=PAL[m];const S="cdomt";
-  const w=(a,b)=>["interpolate",["exponential",1.6],["zoom"],12,a,20,b];
+  const w=(a,b)=>["interpolate",["exponential",1.5],["zoom"],12,a,15,a+(b-a)*.16,20,b];
   const cls=c=>["in",["get","class"],["literal",c]];
   const road=(id,c,fill,cas,wa,wb,minz)=>[
     {id:id+"-cas",type:"line",source:S,"source-layer":"transportation",minzoom:minz,filter:["all",cls(c),["!=",["get","brunnel"],"tunnel"]],layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":cas,"line-width":w(wa+1,wb+3)}},
@@ -424,13 +446,13 @@ function brandStyle(m){const P=PAL[m];const S="cdomt";
       {id:"waterway",type:"line",source:S,"source-layer":"waterway",paint:{"line-color":P.waterway,"line-width":w(.5,4)}},
       {id:"path",type:"line",source:S,"source-layer":"transportation",minzoom:16,filter:cls(["path","track"]),paint:{"line-color":P.path,"line-width":1.2,"line-dasharray":[2,2]}},
       {id:"rail",type:"line",source:S,"source-layer":"transportation",minzoom:12,filter:cls(["rail","transit"]),paint:{"line-color":P.rail,"line-width":w(.6,2)}},
-      ...road("minor",["minor","service"],P.road,P.cas,.4,14,13),
+      ...road("minor",["minor","service"],P.road,P.cas,.5,14,12),
       ...road("mid",["tertiary","secondary"],P.major,P.majorCas,.8,18,10),
       ...road("primary",["primary","trunk"],P.major,P.majorCas,1,20,8),
       ...road("hwy",["motorway"],P.hwy,P.hwyCas,1.2,22,6),
-      {id:"bld",type:"fill",source:S,"source-layer":"building",minzoom:14,paint:{"fill-color":P.bld,"fill-opacity":["interpolate",["linear"],["zoom"],14,0,15.5,1]}},
+      {id:"bld",type:"fill",source:S,"source-layer":"building",minzoom:13,paint:{"fill-color":P.bld,"fill-opacity":["interpolate",["linear"],["zoom"],13,0,14.5,1]}},
       {id:"bld-line",type:"line",source:S,"source-layer":"building",minzoom:16,paint:{"line-color":P.bldLine,"line-width":["interpolate",["linear"],["zoom"],16,.5,19,1.4]}},
-      {id:"road-lbl",type:"symbol",source:S,"source-layer":"transportation_name",minzoom:13,filter:cls(["minor","service","tertiary","secondary","primary","trunk","motorway"]),
+      {id:"road-lbl",type:"symbol",source:S,"source-layer":"transportation_name",minzoom:12,filter:cls(["minor","service","tertiary","secondary","primary","trunk","motorway"]),
         layout:{"symbol-placement":"line","text-field":["get","name"],"text-font":["Noto Sans Bold"],"text-size":["interpolate",["linear"],["zoom"],13,10,17,13,20,16],"text-letter-spacing":.02,"text-max-angle":30},
         paint:{"text-color":P.lbl,"text-halo-color":P.lblHalo,"text-halo-width":1.6}},
       {id:"housenum",type:"symbol",source:S,"source-layer":"housenumber",minzoom:18,layout:{"text-field":["get","housenumber"],"text-font":["Noto Sans Regular"],"text-size":10,"text-offset":[0,1.1]},paint:{"text-color":P.num,"text-halo-color":P.lblHalo,"text-halo-width":1}},
@@ -439,6 +461,22 @@ function brandStyle(m){const P=PAL[m];const S="cdomt";
         paint:{"text-color":P.place,"text-opacity":.75,"text-halo-color":P.lblHalo,"text-halo-width":1.5}}
     ]};
 }
+/* satellite photo + our own roads and street names (no railroad lines) */
+function satStyle(full){const st=raster(["World_Imagery"]),S="cdomt";
+  st.sources[S]={type:"vector",url:"https://tiles.openfreemap.org/planet",attribution:"&copy; OpenStreetMap"};
+  const cls=c=>["in",["get","class"],["literal",c]];const w=(a,b)=>["interpolate",["exponential",1.6],["zoom"],12,a,20,b];
+  if(full){
+    st.layers.push({id:"s-minor",type:"line",source:S,"source-layer":"transportation",minzoom:14,filter:["all",cls(["minor","service"]),["!=",["get","brunnel"],"tunnel"]],layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#ffffff","line-opacity":.35,"line-width":w(.3,3)}});
+    st.layers.push({id:"s-major",type:"line",source:S,"source-layer":"transportation",minzoom:9,filter:["all",cls(["tertiary","secondary","primary","trunk"]),["!=",["get","brunnel"],"tunnel"]],layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#fde68a","line-opacity":.55,"line-width":w(.6,4)}});
+    st.layers.push({id:"s-hwy",type:"line",source:S,"source-layer":"transportation",minzoom:6,filter:["all",cls(["motorway"]),["!=",["get","brunnel"],"tunnel"]],layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#fbbf24","line-opacity":.7,"line-width":w(1,5)}});
+  }
+  st.layers.push({id:"s-lbl",type:"symbol",source:S,"source-layer":"transportation_name",minzoom:13,filter:cls(["minor","service","tertiary","secondary","primary","trunk","motorway"]),
+    layout:{"symbol-placement":"line","text-field":["get","name"],"text-font":["Noto Sans Bold"],"text-size":["interpolate",["linear"],["zoom"],13,10,17,13,20,16],"text-letter-spacing":.02,"text-max-angle":30},
+    paint:{"text-color":"#ffffff","text-halo-color":"rgba(0,0,0,.85)","text-halo-width":1.6}});
+  if(full)st.layers.push({id:"s-place",type:"symbol",source:S,"source-layer":"place",maxzoom:16,filter:cls(["city","town","village","suburb","neighbourhood"]),
+    layout:{"text-field":["get","name"],"text-font":["Noto Sans Bold"],"text-size":["match",["get","class"],"city",16,"town",14,12],"text-transform":["match",["get","class"],["suburb","neighbourhood"],"uppercase","none"],"text-letter-spacing":["match",["get","class"],["suburb","neighbourhood"],.12,0]},
+    paint:{"text-color":"#ffffff","text-halo-color":"rgba(0,0,0,.85)","text-halo-width":1.6}});
+  return st}
 /* rough sunset check for auto day/night */
 function isNight(lat,lng){const d=new Date(),start=Date.UTC(d.getUTCFullYear(),0,0),doy=Math.floor((d-start)/864e5),r=Math.PI/180;
   const decl=23.44*Math.sin(r*360*(284+doy)/365);const x=-Math.tan(lat*r)*Math.tan(decl*r);if(x>=1)return true;if(x<=-1)return false;
@@ -448,8 +486,8 @@ const LAYERS={
   auto:{name:"Auto",sub:"Card Drop map, goes dark at sunset"},
   day:{name:"Card Drop Day",sub:"Clean, house-focused",style:brandStyle("day")},
   night:{name:"Card Drop Night",sub:"Easy on the eyes after dark",style:brandStyle("night")},
-  sat:{name:"Satellite",sub:"Sharp photo with roads",style:raster(["World_Imagery","Reference/World_Transportation"])},
-  hybrid:{name:"Hybrid",sub:"Photo with roads and place names",style:raster(["World_Imagery","Reference/World_Transportation","Reference/World_Boundaries_and_Places"])},
+  sat:{name:"Satellite",sub:"Sharp photo with street names",style:satStyle(false)},
+  hybrid:{name:"Hybrid",sub:"Photo with roads, streets and places",style:satStyle(true)},
   classic:{name:"Classic",sub:"Standard colorful map",style:OFM+"liberty"}
 };
 let curStyle=null;
@@ -461,7 +499,7 @@ setLayer(settings.layer);
 setInterval(()=>{if(settings.layer==="auto")setLayer("auto")},300000);
 $("#btnLayer").onclick=()=>{haptic();sheetOpen(`<div class="sh-addr">Map style</div><div class="card" style="margin-top:12px">${Object.entries(LAYERS).map(([k,x])=>`<button class="row" data-ly="${k}"><div class="m"><div class="a">${x.name}</div><div class="s">${x.sub}</div></div>${settings.layer===k?'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round"><path d="m5 12 5 5 9-10"/></svg>':""}</button>`).join("")}</div>`);
   document.querySelectorAll("[data-ly]").forEach(b=>b.onclick=()=>{setLayer(b.dataset.ly);sheetClose();toast(LAYERS[b.dataset.ly].name+" map",null,1400)})};
-map.on("moveend",()=>{const c=map.getCenter();settings.lastView={lat:c.lat,lng:c.lng,z:map.getZoom()};saveSettings();renderMarkers();refreshAvail()});
+map.on("moveend",()=>{const c=map.getCenter();settings.lastView={lat:c.lat,lng:c.lng,z:map.getZoom()};saveSettings();refreshAvail()});
 
 /* green dots = houses not hit yet (from map building outlines) + selected-house highlight */
 const AVAIL_Z=16;const EMPTY={type:"FeatureCollection",features:[]};
@@ -470,6 +508,7 @@ function withOverlay(st){
   st.sources.cdomt={type:"vector",url:"https://tiles.openfreemap.org/planet",attribution:"&copy; OpenStreetMap"};
   st.sources["cd-avail"]={type:"geojson",data:lastAvailFC||EMPTY};
   st.sources["cd-sel"]={type:"geojson",data:selFC||EMPTY};
+  st.sources["cd-done"]={type:"geojson",data:doneFC()};
   if(!st.glyphs)st.glyphs="https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf";
   st.layers.push({id:"cd-hn",type:"fill",source:"cdomt","source-layer":"building",minzoom:AVAIL_Z,paint:{"fill-opacity":0}});
   st.layers.push({id:"cd-sel-fill",type:"fill",source:"cd-sel",paint:{"fill-color":"#2563eb","fill-opacity":.22}});
@@ -477,6 +516,8 @@ function withOverlay(st){
   st.layers.push({id:"cd-avail-halo",type:"circle",source:"cd-avail",minzoom:AVAIL_Z,paint:{"circle-radius":["interpolate",["linear"],["zoom"],16,6,18,10,20,13],"circle-color":"#22c55e","circle-opacity":.18}});
   st.layers.push({id:"cd-avail",type:"circle",source:"cd-avail",minzoom:AVAIL_Z,paint:{
     "circle-radius":["interpolate",["linear"],["zoom"],16,3.5,18,5.5,20,7.5],"circle-color":"#16a34a","circle-stroke-color":"#fff","circle-stroke-width":["interpolate",["linear"],["zoom"],16,1,19,2]}});
+  st.layers.push({id:"cd-done",type:"circle",source:"cd-done",paint:{
+    "circle-radius":["interpolate",["linear"],["zoom"],16,3.5,18,5.5,20,7.5],"circle-color":["get","c"],"circle-stroke-color":"#fff","circle-stroke-width":["interpolate",["linear"],["zoom"],16,1,19,2]}});
   return st;
 }
 let lastAvailFC=null,selFC=null,availPts=[];
@@ -531,20 +572,9 @@ function updateStreet(){
   el.classList.toggle("hidden",!$("#near").classList.contains("hidden"));
 }
 
-const markers=new Map();
-function pinHtml(h){
-  const st=STATUS[h.status]||STATUS.left;const showNum=map.getZoom()>=17&&h.num;
-  const inner=showNum?esc(h.num):(h.status==="booked"?"$":h.status==="skip"?"&times;":h.status==="talked"?"&bull;":"&#10003;");
-  const fresh=Date.now()-h.updated<1500;
-  return `<div><div class="pin${showNum?" num":""}${fresh?" pop":""}" style="background:${st.color}">${inner}</div></div>`;
-}
-let lastZoomBand=null;
-function renderMarkers(force){
-  const band=map.getZoom()>=17;
-  if(!force&&band===lastZoomBand&&markers.size===houses.length)return;
-  lastZoomBand=band;markers.forEach(m=>m.remove());markers.clear();
-  for(const h of houses)markers.set(h.id,mk(pinHtml(h),h.lat,h.lng,()=>openHouse(h.id)));
-}
+/* marked houses: one dot each, colored by status */
+function doneFC(){return {type:"FeatureCollection",features:houses.map(h=>({type:"Feature",geometry:{type:"Point",coordinates:[h.lng,h.lat]},properties:{id:h.id,c:(STATUS[h.status]||STATUS.left).color}}))}}
+function renderMarkers(){const s=map.getSource&&map.getSource("cd-done");if(s)s.setData(doneFC())}
 
 /* ---------- GPS ---------- */
 let me=null,meMarker=null,meCircle=null,watchId=null,follow=!!settings.follow,firstFix=true;
@@ -617,6 +647,20 @@ async function lookup(lat,lng){
   }catch(e){return null}
 }
 
+/* ---------- money ---------- */
+const money=n=>"$"+Math.round(n||0).toLocaleString();
+const parseAmt=v=>{const n=parseFloat(String(v||"").replace(/[^0-9.]/g,""));return isFinite(n)&&n>0?Math.round(n*100)/100:0};
+const amtBox=(id,v)=>`<div class="amt"><b>$</b><input id="${id}" type="text" inputmode="decimal" placeholder="0" value="${v?esc(v):""}" autocomplete="off"></div>`;
+function askAmount(h){
+  if(tmpMarker){tmpMarker.remove();tmpMarker=null}
+  sheetOpen(`<div class="sh-addr">Booked! How much is the job?</div><div class="sh-sub">${esc(title(h))} · used for your revenue stats</div>
+    ${amtBox("aAmt",h.amount)}
+    <div class="sh-actions"><button class="ghost" id="aSkip">Skip</button><button class="ghost" id="aSave" style="background:var(--booked);color:#fff">Save</button></div>`);
+  setTimeout(()=>{const i=$("#aAmt");if(i)i.focus()},300);
+  const save=()=>{const v=parseAmt($("#aAmt").value);if(v!==(h.amount||0)){h.amount=v;persist();renderAll()}sheetClose();if(v)toast("Booked for "+money(v),null,1800)};
+  $("#aSave").onclick=save;$("#aAmt").onkeydown=e=>{if(e.key==="Enter")save()};$("#aSkip").onclick=sheetClose;
+}
+
 /* ---------- house actions ---------- */
 let undoFn=null;
 function addHouse(lat,lng,status,info,notes){
@@ -658,7 +702,10 @@ const dropHere=async()=>{
 /* tap map = new house */
 let tmpMarker=null;
 map.on("click",e=>{
-  let f=null;try{f=map.queryRenderedFeatures([[e.point.x-14,e.point.y-14],[e.point.x+14,e.point.y+14]],{layers:["cd-avail"]})[0]}catch(err){}
+  const box=[[e.point.x-14,e.point.y-14],[e.point.x+14,e.point.y+14]];
+  let d=null;try{d=map.queryRenderedFeatures(box,{layers:["cd-done"]})[0]}catch(err){}
+  if(d&&d.properties&&d.properties.id){openHouse(d.properties.id);return}
+  let f=null;try{f=map.queryRenderedFeatures(box,{layers:["cd-avail"]})[0]}catch(err){}
   if(f){const[lng,lat]=f.geometry.coordinates;openNew(lat,lng)}else openNew(e.lngLat.lat,e.lngLat.lng)});
 
 function sheetOpen(html){$("#sheetBody").innerHTML=html;$("#back").classList.remove("hidden");requestAnimationFrame(()=>{$("#back").classList.add("show");$("#sheet").classList.add("show")});$("#sheet").scrollTop=0}
@@ -691,7 +738,7 @@ async function openNew(lat,lng){
   $("#sheetBody").querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>{
     const typed=$("#nAddrIn").value.trim();
     const i=Object.assign({},info||{});if(typed&&typed!==(info&&info.addr)){i.addr=typed;const m=typed.match(/^(\d+[A-Za-z]?)\s+(.*)$/);i.num=m?m[1]:"";i.street=m?m[2]:typed}
-    addHouse(lat,lng,b.dataset.st,i,$("#nNotes").value.trim());sheetClose();
+    const h=addHouse(lat,lng,b.dataset.st,i,$("#nNotes").value.trim());if(b.dataset.st==="booked")askAmount(h);else sheetClose();
   });
   info=await lookup(lat,lng);
   if(!$("#nAddr"))return;
@@ -709,6 +756,7 @@ function openHouse(id){
     <div class="sh-sub"><span class="dot" style="display:inline-block;background:${STATUS[h.status].color};vertical-align:middle;margin-right:4px"></span>${STATUS[h.status].label} · ${ago(h.updated)}${d!=null?" · "+(d<1609?ft(d)+" ft away":(d/1609).toFixed(1)+" mi away"):""}</div>
     <input class="addr-edit" id="hAddr" value="${esc(h.addr)}" placeholder="Add address" autocomplete="off">
     ${statusButtons(h.status)}
+    ${h.status==="booked"?`<div class="amt-l">Job amount</div>${amtBox("hAmt",h.amount)}`:""}
     <textarea class="notes" id="hNotes" placeholder="Notes — e.g. dirty truck, dog in yard, call back Sat">${esc(h.notes)}</textarea>
     <div class="sh-actions">
       <button class="ghost" id="hDir"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M21 3 3 10.5l7.5 3L13.5 21z"/></svg>Directions</button>
@@ -719,9 +767,11 @@ function openHouse(id){
     <div class="hist"><b>History</b>${h.history.slice().reverse().map(x=>`<div>${STATUS[x.s]?STATUS[x.s].label:x.s} — ${fmtDate(x.t)}</div>`).join("")}</div>`);
   const saveText=()=>{const a=$("#hAddr").value.trim(),n=$("#hNotes").value.trim();let ch=false;
     if(a!==h.addr){h.addr=a;const m=a.match(/^(\d+[A-Za-z]?)\s+(.*)$/);h.num=m?m[1]:"";h.street=m?m[2]:a;ch=true}
-    if(n!==h.notes){h.notes=n;ch=true}if(ch){persist();renderAll()}};
-  $("#hAddr").onchange=saveText;$("#hNotes").onchange=saveText;
-  $("#sheetBody").querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>{saveText();if(b.dataset.st!==h.status)setStatus(h,b.dataset.st);sheetClose()});
+    if(n!==h.notes){h.notes=n;ch=true}
+    const ai=$("#hAmt");if(ai){const v=parseAmt(ai.value);if(v!==(h.amount||0)){h.amount=v;ch=true}}
+    if(ch){persist();renderAll()}};
+  $("#hAddr").onchange=saveText;$("#hNotes").onchange=saveText;if($("#hAmt"))$("#hAmt").onchange=saveText;
+  $("#sheetBody").querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>{saveText();const st=b.dataset.st;if(st!==h.status)setStatus(h,st);if(st==="booked"&&!h.amount)askAmount(h);else sheetClose()});
   $("#hDone").onclick=()=>{saveText();sheetClose()};
   $("#hDir").onclick=()=>{saveText();location.href=`https://maps.apple.com/?daddr=${h.lat},${h.lng}&dirflg=w`};
   $("#hShow").onclick=()=>{saveText();sheetClose();showTab("map");go(h.lat,h.lng,19)};
@@ -782,6 +832,35 @@ function renderList(){
 $("#q").addEventListener("input",renderList);
 
 /* ---------- stats ---------- */
+/* numbers for a time range. A "card placed" = a house you reached (not skipped), counted on its first visit. */
+function rangeStart(r){if(r==="all")return 0;if(r==="today"){const d=new Date();d.setHours(0,0,0,0);return +d}return Date.now()-(+r)*864e5}
+const lastT=(h,s)=>{let t=0;h.history.forEach(x=>{if(x.s===s&&x.t>t)t=x.t});return t};
+function calc(r){const T=rangeStart(r);let cards=0,talked=0,booked=0,rev=0,paid=0;
+  for(const h of houses){
+    if(h.created>=T&&h.history.some(x=>x.s!=="skip"))cards++;
+    if(h.history.some(x=>(x.s==="talked"||x.s==="booked")&&x.t>=T))talked++;
+    if(h.status==="booked"&&lastT(h,"booked")>=T){booked++;if(h.amount){rev+=h.amount;paid++}}}
+  return {cards,talked,booked,rev,avg:paid?rev/paid:0,pct:cards?Math.round(booked/cards*100):null}}
+/* expected clients from cards still out there, using your own booking rate */
+function expected(){const all=calc("all");const open=houses.filter(h=>h.status==="left"||h.status==="talked").length;
+  if(all.cards<10||!all.booked)return {ok:false,open,cards:all.cards,booked:all.booked};
+  const rate=all.booked/all.cards;return {ok:true,open,rate,n:open*rate,rev:all.avg?open*rate*all.avg:0}}
+const RLBL={today:"today",7:"last 7 days",30:"last 30 days",all:"all time"};
+function renderTop(){
+  const r=settings.range||"today",c=calc(r);
+  document.querySelectorAll("#rng button").forEach(b=>b.classList.toggle("on",b.dataset.r===r));
+  $("#tbCards").innerHTML=`
+    <div class="sc" style="--c:${STATUS.left.color}"><span>Cards</span><b>${c.cards}</b><small>${RLBL[r]}</small></div>
+    <div class="sc" style="--c:${STATUS.talked.color}"><span>Talked</span><b>${c.talked}</b><small>${c.cards?Math.round(c.talked/c.cards*100)+"%":"&nbsp;"}</small></div>
+    <div class="sc" style="--c:${STATUS.booked.color}"><span>Clients</span><b>${c.booked}</b><small>${c.pct!=null?c.pct+"% booked":"&nbsp;"}</small></div>
+    <div class="sc" style="--c:#22c55e"><span>Revenue</span><b${money(c.rev).length>5?' style="font-size:15px;line-height:23px"':""}>${money(c.rev)}</b><small>${c.avg?"avg "+money(c.avg):"&nbsp;"}</small></div>`;
+  $("#topbar").classList.toggle("min",!!settings.statsMin);
+  requestAnimationFrame(()=>document.documentElement.style.setProperty("--tbH",$("#topbar").offsetHeight+"px"));
+}
+$("#tbLegend").innerHTML=`<span><i style="background:#16a34a"></i>Not hit</span>`+["left","talked","booked","skip"].map(k=>`<span><i style="background:${STATUS[k].color}"></i>${STATUS[k].label}</span>`).join("");
+document.querySelectorAll("#rng button").forEach(b=>b.onclick=()=>{haptic();settings.range=b.dataset.r;saveSettings();renderTop();if(curTab==="stats")renderStats()});
+$("#tbTog").onclick=()=>{haptic();settings.statsMin=!settings.statsMin;saveSettings();renderTop()};
+
 function renderStats(){
   const now=Date.now(),today=dayKey(now);
   const cardActs=[];houses.forEach(h=>h.history.forEach(x=>{if(x.s==="left")cardActs.push(x.t)}));
@@ -793,14 +872,18 @@ function renderStats(){
   const streets=new Set(houses.map(h=>h.street).filter(Boolean)).size;
   const days=[];for(let i=6;i>=0;i--){const d=new Date(now-i*864e5);const k=dayKey(d);days.push({l:d.toLocaleDateString(undefined,{weekday:"narrow"}),n:cardActs.filter(t=>dayKey(t)===k).length})}
   const max=Math.max(1,...days.map(d=>d.n));
-  const tot=houses.length||1;
+  const tot=houses.length||1;const rc=calc(settings.range||"today"),ex=expected();
   $("#stats").innerHTML=`
     <div class="grid2">
       <div class="stat hero"><div class="k">Cards left today</div><div class="v">${todayN}</div><div class="sub">${weekN} this week · ${houses.length} houses total</div></div>
-      <div class="stat"><div class="k">Booked</div><div class="v" style="color:var(--booked)">${cnt.booked}</div><div class="sub">${rate}% of houses reached</div></div>
+      <div class="stat"><div class="k">Booked</div><div class="v" style="color:var(--booked)">${cnt.booked}</div><div class="sub">${rate}% of houses reached${cnt.booked?" · "+money(houses.reduce((a,h)=>a+(h.status==="booked"&&h.amount||0),0))+" total":""}</div></div>
       <div class="stat"><div class="k">Talked to</div><div class="v" style="color:var(--talked)">${cnt.talked}</div><div class="sub">Follow up soon</div></div>
       <div class="stat"><div class="k">Streets covered</div><div class="v">${streets}</div><div class="sub">With at least one house</div></div>
       <div class="stat"><div class="k">Skipped</div><div class="v" style="color:var(--skip)">${cnt.skip}</div><div class="sub">No soliciting, etc.</div></div>
+      <div class="stat"><div class="k">Revenue (${RLBL[settings.range||"today"]})</div><div class="v" style="color:#16a34a">${money(rc.rev)}</div><div class="sub">${rc.avg?"Avg job "+money(rc.avg):"Add $ amounts when booking"}</div></div>
+      <div class="stat hero" style="background:linear-gradient(135deg,#3b0764,#9333ea)"><div class="k">Expected clients</div>${ex.ok
+        ?`<div class="v">~${ex.n<10?ex.n.toFixed(1):Math.round(ex.n)}</div><div class="sub">From your ${ex.open} open card${ex.open==1?"":"s"} at your real ${(ex.rate*100).toFixed(ex.rate<.1?1:0)}% booking rate${ex.rev?" · about "+money(ex.rev)+" in jobs":""}</div>`
+        :`<div class="v">—</div><div class="sub">Need at least 10 cards and 1 booking to estimate (you have ${ex.cards} card${ex.cards==1?"":"s"}, ${ex.booked} booked)</div>`}</div>
     </div>
     <div class="group-h">Last 7 days</div>
     <div class="stat"><div class="k">Cards left per day</div><div class="bars">${days.map(d=>`<div><em>${d.n||""}</em><i style="height:${d.n/max*80}%"></i>${d.l}</div>`).join("")}</div></div>
@@ -816,7 +899,7 @@ function renderSettings(){
   $("#setRadius").textContent=(RADII.find(r=>r[0]===settings.radius)||[0,ft(settings.radius)+" ft"])[1];
   $("#lastBackup").textContent=settings.lastBackup?"Last backup "+ago(settings.lastBackup):"Never backed up";
 }
-$("#setBiz").addEventListener("input",e=>{settings.biz=e.target.value.trim();saveSettings();$("#bizName").textContent=settings.biz||"Mobile Detailing"});
+$("#setBiz").addEventListener("input",e=>{settings.biz=e.target.value.trim();saveSettings();$("#bizName").textContent=settings.biz||"Card Drop"});
 $("#setNear").onchange=e=>{settings.near=e.target.checked;saveSettings();checkNear();toast(settings.near?"Nearby warnings on":"Nearby warnings off",null,1500)};
 $("#setFollow").onchange=e=>{settings.follow=follow=e.target.checked;saveSettings();if(follow){startGPS();if(me)pan(me.lat,me.lng)}};
 $("#setRadiusBtn").onclick=()=>{const i=RADII.findIndex(r=>r[0]===settings.radius);settings.radius=RADII[(i+1)%RADII.length][0];saveSettings();renderSettings();checkNear();haptic()};
@@ -837,8 +920,8 @@ $("#btnBackup").onclick=async()=>{
 $("#btnCsv").onclick=async()=>{
   if(!houses.length){toast("No houses to export yet");return}
   const q=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
-  const rows=[["Address","Number","Street","City","Status","Last updated","First visit","Notes","Latitude","Longitude"]].concat(
-    houses.map(h=>[h.addr,h.num,h.street,h.city,STATUS[h.status].label,new Date(h.updated).toLocaleString(),new Date(h.created).toLocaleString(),h.notes,h.lat.toFixed(6),h.lng.toFixed(6)]));
+  const rows=[["Address","Number","Street","City","Status","Job amount","Last updated","First visit","Notes","Latitude","Longitude"]].concat(
+    houses.map(h=>[h.addr,h.num,h.street,h.city,STATUS[h.status].label,h.status==="booked"&&h.amount?h.amount:"",new Date(h.updated).toLocaleString(),new Date(h.created).toLocaleString(),h.notes,h.lat.toFixed(6),h.lng.toFixed(6)]));
   await shareOrDownload(`carddrop-${stamp()}.csv`,rows.map(r=>r.map(q).join(",")).join("\n"),"text/csv");
 };
 $("#btnRestore").onclick=()=>$("#fileIn").click();
@@ -848,7 +931,7 @@ $("#fileIn").onchange=async e=>{
     const j=JSON.parse(await f.text());const list=Array.isArray(j)?j:j.houses;if(!Array.isArray(list))throw 0;
     const ids=new Set(houses.map(h=>h.id));let added=0;
     for(const h of list){if(!h||typeof h.lat!=="number"||typeof h.lng!=="number"||ids.has(h.id))continue;
-      houses.push({id:h.id||uid(),lat:h.lat,lng:h.lng,status:STATUS[h.status]?h.status:"left",addr:String(h.addr||""),num:String(h.num||""),street:String(h.street||""),city:String(h.city||""),notes:String(h.notes||""),created:+h.created||Date.now(),updated:+h.updated||Date.now(),history:Array.isArray(h.history)?h.history:[{s:h.status||"left",t:+h.updated||Date.now()}]});added++}
+      houses.push({id:h.id||uid(),lat:h.lat,lng:h.lng,status:STATUS[h.status]?h.status:"left",addr:String(h.addr||""),num:String(h.num||""),street:String(h.street||""),city:String(h.city||""),notes:String(h.notes||""),amount:parseAmt(h.amount),created:+h.created||Date.now(),updated:+h.updated||Date.now(),history:Array.isArray(h.history)?h.history:[{s:h.status||"left",t:+h.updated||Date.now()}]});added++}
     persist();renderAll();toast(added?`Restored ${added} house${added==1?"":"s"}`:"No new houses in that backup");
   }catch(err){toast("That file isn't a Card Drop backup")}
 };
@@ -866,13 +949,12 @@ $("#onbGo").onclick=()=>{startCompass();$("#onb").classList.add("hidden");if(!se
 
 /* ---------- render all ---------- */
 function renderAll(){
-  const today=dayKey(Date.now());let n=0;houses.forEach(h=>h.history.forEach(x=>{if(x.s==="left"&&dayKey(x.t)===today)n++}));
-  $("#todayCount").textContent=n;
-  renderMarkers(true);checkNear();refreshAvail();
+  renderTop();
+  renderMarkers();checkNear();refreshAvail();
   $("#hint").classList.toggle("hidden",houses.length>2);
   if(curTab==="list")renderList();if(curTab==="stats")renderStats();if(curTab==="set")renderSettings();
 }
-$("#bizName").textContent=settings.biz||"Mobile Detailing";
+$("#bizName").textContent=settings.biz||"Card Drop";
 renderAll();
 if(!settings.onboarded)showOnb(false);else startGPS();
 // backup reminder every 2 weeks once there's data
@@ -882,7 +964,7 @@ setInterval(()=>{checkNear();if(curTab==="list")renderList()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderAll()}});
 
 /* ---------- offline + updates ---------- */
-const APP_VERSION="1.6";
+const APP_VERSION="1.7";
 $("#verLbl").textContent="Version "+APP_VERSION;
 let swReg=null;
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").then(r=>swReg=r).catch(()=>{});
