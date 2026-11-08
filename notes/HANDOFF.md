@@ -1,5 +1,5 @@
 # Card Drop — status (read this first)
-**Updated:** 2026-11-08 session 4. LIVE **v2.2.3**. Full record: `HISTORY.md` (grep only). Old handoffs: `handoffs/`.
+**Updated:** 2026-11-08 session 4. LIVE **v2.2.4**. Full record: `HISTORY.md` (grep only). Old handoffs: `handoffs/`.
 
 ## Basics
 - Phone PWA for Trell's detailing business: mark houses where cards were left. Owner on iPhone. LIVE
@@ -7,7 +7,7 @@
 - One `index.html` (vanilla JS, MapLibre 5.6.1, pmtiles 3.2.1), `sw.js`, `version.json`. Data: `carddrop.v1` houses,
   `carddrop.biz.v1` {buys,jobs}, `carddrop.settings.v1` (per phone), `carddrop.sync.v1` (shared-map state).
 - Sync server: `../carddrop-sync/` (Worker `carddrop-sync` + D1 `carddrop-sync`, local git only). README there.
-- Release: bump `APP_VERSION` + `version.json` + `CACHE` in sw.js (now carddrop-v23), commit, push, poll version.json.
+- Release: bump `APP_VERSION` + `version.json` + `CACHE` in sw.js (now carddrop-v24), commit, push, poll version.json.
 - Look: dark navy theme = "app theme v2" block at END of <style>. Never use var(--ink) as a background.
 
 ## Testing
@@ -40,6 +40,16 @@
 - Facing cone: compass wins over GPS course (GPS only if no compass for 3 s), smoothed with wrap-around, redrawn on map rotate,
   landscape correction, skips bad iOS compass accuracy (>45). iPhone compass permission now asked on first tap anywhere (was only locate button).
 - Compass/GPS not phone-tested (math tested in node).
+
+## Session 4e (v2.2.4)
+- Partner live location: Settings → Live location (Share switch, Your name, partner row → show on map). Sent with each
+  /sync (dev id + me spot, throttled: moved >2 m / 15 s / turned >20°). Server table `presence` (latest spot only, 12 h).
+  Partner = orange dot + name + facing cone; >45 s without update → gray, stays at last spot "Mike · 2 min ago"
+  (kept in sync.peers so it survives no signal/reload). Turning off or leaving deletes it right away.
+- Green (not-hit) dots now show house numbers: OSM `housenumber` points from openfreemap (invisible layer `cd-hnum-src`),
+  matched to building outline (inside, else ≤12 m). Only where OSM has addresses.
+- Gotcha: never set `position` on a MapLibre marker element (overrides its absolute positioning → marker drifts).
+- Tested in two tabs + node partner script. Own location sending not testable in browser (no GPS).
 
 ## Open / unverified
 - Nothing phone-tested by owner yet (multi-select, fast start, shared map, marker). Test teams deleted from D1 (0 teams).

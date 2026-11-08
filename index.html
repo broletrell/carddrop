@@ -412,6 +412,16 @@ html,body{background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialias
   box-shadow:0 4px 14px rgba(0,0,0,.45);position:relative;cursor:pointer}
 .lastmk:after{content:"";position:absolute;left:50%;bottom:-5px;margin-left:-5px;border:5px solid transparent;border-bottom:0;border-top-color:#fff}
 .set-note{color:var(--ink3);font-size:12px;line-height:1.4;margin:8px 8px 0}
+/* partner's live location */
+.peer{width:64px;height:64px;cursor:pointer}
+.peer>*{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none}
+.peer .pcone{width:64px;height:64px;transform:translate(-50%,-50%) rotate(var(--hd,0deg));opacity:0;transition:opacity .3s}
+.peer .pcone.on{opacity:1}
+.peer .pdot{width:18px;height:18px;border-radius:50%;background:#f97316;border:3px solid #fff;box-shadow:0 0 0 5px rgba(249,115,22,.25),0 2px 6px rgba(0,0,0,.3)}
+.peer .pname{top:auto;bottom:-8px;transform:translate(-50%,0);background:#f97316;color:#fff;font:700 11px/1 -apple-system,system-ui,sans-serif;padding:4px 7px;border-radius:9px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.peer.stale{opacity:.6}
+.peer.stale .pdot{background:#94a3b8;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.peer.stale .pname{background:#64748b}
 </style>
 </head>
 <body class="on-map">
@@ -485,6 +495,19 @@ html,body{background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialias
       <div class="group-h">Shared map</div>
       <div class="card" id="syncCard"></div>
       <div class="set-note" id="syncNote"></div>
+      <div id="liveWrap" class="hidden">
+      <div class="group-h">Live location</div>
+      <div class="card">
+        <div class="row"><div class="ico" style="background:#f97316"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><path d="M12 21s-7-6.2-7-12a7 7 0 1 1 14 0c0 5.8-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg></div>
+          <div class="m"><div class="a">Share my live location</div><div class="s">Your partner sees you on their map</div></div>
+          <label class="switch"><input type="checkbox" id="setShare"><span></span></label></div>
+        <label class="row"><div class="ico" style="background:#64748b"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></div>
+          <div class="m"><div class="a">Your name</div></div><input type="text" id="setName" placeholder="Shown on their map" maxlength="20"></label>
+        <button class="row hidden" id="peerRow"><div class="ico" style="background:#f97316"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></div>
+          <div class="m"><div class="a" id="peerName"></div><div class="s" id="peerStat"></div></div><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 6 6 6-6 6"/></svg></button>
+      </div>
+      <div class="set-note">Shared only while Card Drop is open on your screen. If you lose signal or close the app, your partner sees your last spot, faded. Turn it off anytime.</div>
+      </div>
 
       <div class="group-h">Your data</div>
       <div class="card">
@@ -568,7 +591,7 @@ function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}
 function persist(){trackLast();syncMark(["h"]);try{localStorage.setItem(KEY,JSON.stringify(houses))}catch(e){toast("Couldn't save. Phone storage may be full.")}}
 function saveSettings(){try{localStorage.setItem(SKEY,JSON.stringify(settings))}catch(e){}}
 let houses=load(KEY,[]); if(!Array.isArray(houses))houses=[];
-let settings=Object.assign({biz:"",near:true,radius:25,follow:false,layer:"auto",onboarded:false,lastBackup:0,lastView:null,sRange:"30",cRange:"all",oRange:"all",estDays:14},load(SKEY,{}));
+let settings=Object.assign({biz:"",near:true,radius:25,follow:false,layer:"auto",onboarded:false,lastBackup:0,lastView:null,sRange:"30",cRange:"all",oRange:"all",estDays:14,shareLoc:false,myName:""},load(SKEY,{}));
 /* card purchases {id,t,qty,cost} and jobs that didn't come from a card {id,t,amount,source,note} */
 const BKEY="carddrop.biz.v1";
 let biz=load(BKEY,{});if(!biz||typeof biz!=="object")biz={};
@@ -629,8 +652,10 @@ async function syncPost(path,body){const r=await fetch(SYNC_URL+path,{method:"PO
 async function syncNow(){if(!sync)return;if(syncBusy){syncAgain=true;return}syncBusy=true;let got=0;
   try{for(let loop=0;loop<30&&sync;loop++){
       const sent=Object.keys(sync.out).slice(0,400).map(k=>({...sync.out[k]}));
-      const r=await syncPost("/sync",{code:sync.code,since:sync.seq||0,changes:sent});
+      const pres=loop===0?presBody():{dev:myDev()};
+      const r=await syncPost("/sync",{code:sync.code,since:sync.seq||0,changes:sent,...pres});
       if(!sync)break;
+      if(r.ok){if(pres.me){presSent={lat:me.lat,lng:me.lng,hd:headSm,t:Date.now()};sync.locOff=false}if(pres.off)sync.locOff=false;if(Array.isArray(r.j.peers))setPeers(r.j.peers)}
       if(r.status===404){sync.err="gone";break}
       if(!r.ok||!Array.isArray(r.j.changes))throw 0;
       for(const c of sent){const k=c.k+":"+c.id,o=sync.out[k];if(o&&o.mt===c.mt)delete sync.out[k]}
@@ -758,6 +783,7 @@ function withOverlay(st){
   st.sources["cd-done"]={type:"geojson",data:doneFC()};
   if(!st.glyphs)st.glyphs="https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf";
   st.layers.push({id:"cd-hn",type:"fill",source:"cdomt","source-layer":"building",minzoom:AVAIL_Z,paint:{"fill-opacity":0}});
+  st.layers.push({id:"cd-hnum-src",type:"circle",source:"cdomt","source-layer":"housenumber",minzoom:AVAIL_Z,paint:{"circle-radius":0,"circle-opacity":0,"circle-stroke-width":0}});
   if(ovReady){
     st.sources.ov={type:"vector",url:"pmtiles://"+ovUrl(ovRel),attribution:"&copy; Overture Maps"};
     const P=PAL[curStyle==="night"?"night":"day"],photo=curStyle==="sat"||curStyle==="hybrid";
@@ -776,6 +802,9 @@ function withOverlay(st){
     "circle-radius":["interpolate",["linear"],["zoom"],14,1.4,15,2.5,16,3.5,18,5.5,20,7.5],"circle-color":"#16a34a","circle-stroke-color":"#fff","circle-stroke-width":["interpolate",["linear"],["zoom"],14,0,15,.7,16,1,19,2]}});
   st.layers.push({id:"cd-done",type:"circle",source:"cd-done",paint:{
     "circle-radius":["interpolate",["linear"],["zoom"],10,3.5,16,3.5,18,5.5,20,7.5],"circle-color":["get","c"],"circle-stroke-color":"#fff","circle-stroke-width":["interpolate",["linear"],["zoom"],10,1,16,1,19,2]}});
+  st.layers.push({id:"cd-avail-num",type:"symbol",source:"cd-avail",minzoom:16.5,layout:{"text-field":["get","n"],"text-font":["Noto Sans Bold"],
+    "text-size":["interpolate",["linear"],["zoom"],16.5,10,19,12,21,14],"text-anchor":"bottom","text-offset":[0,-.55],"text-padding":1},
+    paint:{"text-color":"#0f172a","text-halo-color":"#fff","text-halo-width":1.6}});
   st.layers.push({id:"cd-done-num",type:"symbol",source:"cd-done",minzoom:16.5,layout:{"text-field":["get","n"],"text-font":["Noto Sans Bold"],
     "text-size":["interpolate",["linear"],["zoom"],16.5,10,19,12,21,14],"text-anchor":"bottom","text-offset":[0,-.55],"text-padding":1},
     paint:{"text-color":"#0f172a","text-halo-color":"#fff","text-halo-width":1.6}});
@@ -812,10 +841,20 @@ const KX=lat=>111320*Math.cos(lat*Math.PI/180),KY=110540;
 function buildingPolys(){let fs=[];try{fs=map.querySourceFeatures("cdomt",{sourceLayer:"building"})}catch(e){}
   if(ovReady&&map.getSource("ov")){try{fs=fs.concat(map.querySourceFeatures("ov",{sourceLayer:"building"}))}catch(e){}}
   const out=[];for(const f of fs){const g=f.geometry;if(!g)continue;(g.type==="Polygon"?[g.coordinates]:g.type==="MultiPolygon"?g.coordinates:[]).forEach(p=>out.push(p))}return out}
+// OpenStreetMap address points near the screen, bucketed by ~40 m cells for quick lookup
+function houseNumPts(){const g=new Map();let fs=[];try{fs=map.querySourceFeatures("cdomt",{sourceLayer:"housenumber"})}catch(e){}
+  for(const f of fs){const c=f.geometry&&f.geometry.type==="Point"&&f.geometry.coordinates,n=f.properties&&f.properties.housenumber;if(!c||!n)continue;
+    const k=Math.floor(c[0]*2500)+","+Math.floor(c[1]*2500);(g.get(k)||g.set(k,[]).get(k)).push([c[0],c[1],String(n).slice(0,6)])}return g}
+// number for a building: an address point inside its outline, else the closest one within 12 m of its middle
+function numFor(g,ring,lng,lat,kx,ky){if(!g.size)return "";const gx=Math.floor(lng*2500),gy=Math.floor(lat*2500);let best="",bd=144;
+  for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++){const c=g.get((gx+i)+","+(gy+j));if(!c)continue;
+    for(const q of c){if(inRing(q[0],q[1],ring))return q[2];const d=((q[0]-lng)*kx)**2+((q[1]-lat)*ky)**2;if(d<bd){bd=d;best=q[2]}}}
+  return best}
 function refreshAvail(){
   const src=map.getSource&&map.getSource("cd-avail");if(!src)return;
   if(map.getZoom()<AVAIL_Z){availPts=[];lastAvailFC=EMPTY;src.setData(EMPTY);updateStreet();return}
   const grid=new Map(),out=[];const kx=KX(map.getCenter().lat),ky=KY;availPts=[];
+  const hn=houseNumPts();
   for(const poly of buildingPolys()){const ring=poly[0];if(!ring||ring.length<4)continue;
       const ox=ring[0][0],oy=ring[0][1];let A=0,cx=0,cy=0;for(let i=0;i<ring.length-1;i++){const x0=(ring[i][0]-ox)*kx,y0=(ring[i][1]-oy)*ky,x1=(ring[i+1][0]-ox)*kx,y1=(ring[i+1][1]-oy)*ky,c=x0*y1-x1*y0;A+=c;cx+=(x0+x1)*c;cy+=(y0+y1)*c}
       A/=2;if(Math.abs(A)<55||Math.abs(A)>900)continue; // houses only: skip sheds/garages and big buildings
@@ -824,7 +863,7 @@ function refreshAvail(){
       for(let i=-1;i<=1&&!dup;i++)for(let j=-1;j<=1;j++){const c=grid.get((gx+i)+","+(gy+j));if(c&&c.some(q=>((q[0]-lng)*kx)**2+((q[1]-lat)*ky)**2<64)){dup=true;break}}
       if(dup)continue;const gk=gx+","+gy;(grid.get(gk)||grid.set(gk,[]).get(gk)).push([lng,lat]);
       let hit=false;for(const h of houses){if(Math.abs(h.lat-lat)<.0003&&Math.abs(h.lng-lng)<.0004&&dist(lat,lng,h.lat,h.lng)<14){hit=true;break}}
-      if(!hit){availPts.push([lng,lat]);out.push({type:"Feature",geometry:{type:"Point",coordinates:[lng,lat]},properties:{}})}}
+      if(!hit){availPts.push([lng,lat]);out.push({type:"Feature",geometry:{type:"Point",coordinates:[lng,lat]},properties:{n:numFor(hn,ring,lng,lat,kx,ky)}})}}
   lastAvailFC={type:"FeatureCollection",features:out};src.setData(lastAvailFC);updateStreet();
 }
 /* highlight the house outline under a point */
@@ -1478,13 +1517,13 @@ function renderSettings(){
   if(document.activeElement!==$("#setBiz"))$("#setBiz").value=settings.biz;$("#setNear").checked=settings.near;$("#setFollow").checked=settings.follow;
   $("#setRadius").textContent=(RADII.find(r=>r[0]===settings.radius)||[0,ft(settings.radius)+" ft"])[1];
   $("#lastBackup").textContent=settings.lastBackup?"Last backup "+ago(settings.lastBackup):"Never backed up";
-  renderSyncCard();
+  renderSyncCard();renderLiveCard();
 }
 /* shared map settings */
 const fmtCode=c=>c.match(/.{1,4}/g).join("-");
 const ICO_SYNC='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M17 20v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2M10 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0M21 20v-2a4 4 0 0 0-3-3.9M16 4.1a3 3 0 0 1 0 5.8"/></svg>';
 const CHEV='<svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 6 6 6-6 6"/></svg>';
-function renderSyncCard(){const c=$("#syncCard");if(!c)return;
+function renderSyncCard(){const c=$("#syncCard");if(!c)return;renderLiveCard();
   if(!sync){c.innerHTML=`<button class="row" id="syStart"><div class="ico" style="background:#2563eb">${ICO_SYNC}</div><div class="m"><div class="a">Start a shared map</div><div class="s">You and a partner see the same houses and stats</div></div>${CHEV}</button>
     <button class="row" id="syJoin"><div class="ico" style="background:#16a34a"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg></div><div class="m"><div class="a">Join with a code</div><div class="s">Your partner gives you the code</div></div>${CHEV}</button>`;
     $("#syncNote").textContent="Shared: houses, notes, history, card buys and jobs. Not shared: settings and map style.";
@@ -1531,12 +1570,61 @@ function syncJoinSheet(){
 async function syncLeave(){
   const pend=sync?Object.keys(sync.out).length:0;
   if(!await confirmDlg("Leave the shared map?",`Your houses stay on this phone, but changes won't sync with your partner anymore.${pend?` ${pend} change${pend==1?"":"s"} haven't been sent yet.`:""}`,"Leave",true))return;
-  sync=null;saveSync();renderSyncCard();toast("Left the shared map")}
+  if(settings.shareLoc||sync.dev)syncPost("/sync",{code:sync.code,since:sync.seq||0,changes:[],dev:myDev(),off:1}).catch(()=>{});
+  sync=null;saveSync();renderSyncCard();renderLiveCard();renderPeers();toast("Left the shared map")}
+/* ---------- live location: see your partner on the map ----------
+   Sent with each sync while "Share my live location" is on and the app is open. Their last spot stays
+   on your map, faded, if they lose signal; it goes away when they turn sharing off or leave (or after 12 h). */
+let presSent=null;const peerMk={};
+const peerAgo=t=>{const s=Math.round((Date.now()-t)/1000);return s<60?s+" sec ago":ago(t)};const STALE=45000,PEER_KEEP=12*3600000;
+function myDev(){if(!sync.dev){sync.dev=(uid()+uid()).replace(/[^a-z0-9]/gi,"").slice(0,24);saveSync()}return sync.dev}
+function presBody(){const dev=myDev();
+  if(settings.shareLoc&&me&&Date.now()-me.t<60000){
+    const turned=headSm!=null&&presSent&&presSent.hd!=null&&Math.abs(((headSm-presSent.hd)%360+540)%360-180)>20;
+    if(!presSent||dist(presSent.lat,presSent.lng,me.lat,me.lng)>2||Date.now()-presSent.t>15000||turned)
+      return {dev,me:{name:settings.myName||"Partner",lat:+me.lat.toFixed(6),lng:+me.lng.toFixed(6),acc:Math.round(me.acc),hd:headSm==null?null:Math.round(headSm)}}}
+  if(sync.locOff)return {dev,off:1};
+  return {dev}}
+function setPeers(list){const now=Date.now(),o={};
+  for(const p of list)if(p&&typeof p.dev==="string"&&isFinite(p.lat)&&isFinite(p.lng))o[p.dev]={name:String(p.name||"Partner").slice(0,24),lat:+p.lat,lng:+p.lng,hd:p.hd==null?null:+p.hd,seen:now-Math.max(0,+p.age||0)};
+  sync.peers=o;renderPeers()}
+function renderPeers(){const ps=sync&&sync.peers||{},now=Date.now();
+  for(const dev in peerMk)if(!ps[dev]||now-ps[dev].seen>PEER_KEEP){peerMk[dev].m.remove();delete peerMk[dev]}
+  for(const dev in ps){const p=ps[dev],age=now-p.seen;if(age>PEER_KEEP)continue;const stale=age>STALE;
+    let k=peerMk[dev];
+    if(!k){const el=document.createElement("div");el.className="peer";
+      el.innerHTML='<svg class="pcone" viewBox="0 0 90 90"><defs><radialGradient id="pg'+dev+'" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#f97316" stop-opacity=".6"/><stop offset="1" stop-color="#f97316" stop-opacity="0"/></radialGradient></defs><path d="M45 45 L28 3 A44 44 0 0 1 62 3 Z" fill="url(#pg'+dev+')"/></svg><div class="pdot"></div><div class="pname"></div>';
+      el.onclick=e=>{e.stopPropagation();const q=sync&&sync.peers&&sync.peers[dev];if(!q)return;go(q.lat,q.lng,Math.max(map.getZoom(),17));
+        toast(q.name+(Date.now()-q.seen>STALE?" · last seen "+peerAgo(q.seen):" · live now"),null,2000)};
+      const m=new maplibregl.Marker({element:el,anchor:"center"}).setLngLat([p.lng,p.lat]).addTo(map);m.getElement().style.zIndex=4;
+      k=peerMk[dev]={m,el,lat:p.lat,lng:p.lng}}
+    else if(k.lat!==p.lat||k.lng!==p.lng){glideMk(k.m,p.lat,p.lng);k.lat=p.lat;k.lng=p.lng}
+    k.el.classList.toggle("stale",stale);
+    k.el.querySelector(".pname").textContent=p.name+(stale?" · "+peerAgo(p.seen):"");
+    const cone=k.el.querySelector(".pcone");cone.classList.toggle("on",!stale&&p.hd!=null);if(p.hd!=null)cone.style.setProperty("--hd",(p.hd-map.getBearing())+"deg")}
+  if(curTab==="set")renderLiveCard()}
+function glideMk(m,lat,lng){const a=m.getLngLat(),t0=performance.now(),D=900;
+  if(Math.abs(a.lat-lat)+Math.abs(a.lng-lng)>0.003){m.setLngLat([lng,lat]);return}
+  const step=()=>{const f=Math.min(1,(performance.now()-t0)/D),e=1-(1-f)*(1-f);m.setLngLat([a.lng+(lng-a.lng)*e,a.lat+(lat-a.lat)*e]);if(f<1)requestAnimationFrame(step)};step()}
+map.on("rotate",()=>{if(sync&&sync.peers)for(const dev in peerMk){const p=sync.peers[dev];if(p&&p.hd!=null)peerMk[dev].el.querySelector(".pcone").style.setProperty("--hd",(p.hd-map.getBearing())+"deg")}});
+function renderLiveCard(){$("#liveWrap").classList.toggle("hidden",!sync);if(!sync)return;
+  $("#setShare").checked=!!settings.shareLoc;if(document.activeElement!==$("#setName"))$("#setName").value=settings.myName||"";
+  const ps=Object.values(sync.peers||{}).sort((a,b)=>b.seen-a.seen),p=ps[0],row=$("#peerRow");
+  row.classList.toggle("hidden",!p);if(!p)return;
+  $("#peerName").textContent=ps.length>1?ps.map(x=>x.name).join(", "):p.name;
+  $("#peerStat").textContent=(Date.now()-p.seen>STALE?"Last seen "+peerAgo(p.seen):"Live now")+" · tap to show on map";
+  row.onclick=()=>{haptic();showTab("map");go(p.lat,p.lng,Math.max(map.getZoom(),17))}}
+$("#setShare").addEventListener("change",e=>{settings.shareLoc=e.target.checked;saveSettings();presSent=null;
+  if(sync){sync.locOff=!settings.shareLoc;saveSync()}
+  if(settings.shareLoc){startGPS();if(!settings.myName)toast("Add your name so your partner knows it's you",null,2500)}
+  syncSoon(200)});
+$("#setName").addEventListener("input",e=>{settings.myName=e.target.value.trim().slice(0,20);saveSettings();presSent=null});
+if(sync&&sync.peers)setTimeout(renderPeers,800); // last known partner spots, even before the first sync
 // sync on open, when coming back to the app, when signal returns, and every 5 s while open (near-live partner updates)
 if(sync)syncSoon(600);
 document.addEventListener("visibilitychange",()=>{if(!sync)return;if(!document.hidden)syncSoon(300);else if(Object.keys(sync.out).length)syncNow()});
 window.addEventListener("online",()=>{if(sync)syncSoon(300)});
-setInterval(()=>{if(sync&&!document.hidden&&!syncBusy&&navigator.onLine!==false)syncNow()},5000);
+setInterval(()=>{if(sync&&!document.hidden&&!syncBusy&&navigator.onLine!==false)syncNow();if(!document.hidden)renderPeers()},5000);
 $("#setBiz").addEventListener("input",e=>{settings.biz=e.target.value.trim();saveSettings()});
 $("#setNear").onchange=e=>{settings.near=e.target.checked;saveSettings();checkNear();toast(settings.near?"Nearby warnings on":"Nearby warnings off",null,1500)};
 $("#setFollow").onchange=e=>{settings.follow=follow=e.target.checked;saveSettings();if(follow){startGPS();if(me)pan(me.lat,me.lng)}};
@@ -1607,7 +1695,7 @@ setInterval(()=>{checkNear();if(curTab==="list")renderList()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderAll()}});
 
 /* ---------- offline + updates ---------- */
-const APP_VERSION="2.2.3";
+const APP_VERSION="2.2.4";
 $("#verLbl").textContent="Version "+APP_VERSION;
 let swReg=null;
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").then(r=>swReg=r).catch(()=>{});
