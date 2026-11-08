@@ -179,6 +179,9 @@ body.night .mapbtns{background:rgba(15,23,42,.82)}body.night .rbtn{color:#e2e8f0
 .est-l{font-size:15px;color:#9aa5bb;line-height:1.35}
 .est-bar{height:12px;border-radius:6px;background:#232c43;overflow:hidden;margin:12px 0 10px;position:relative}
 .est-bar i{position:absolute;top:0;bottom:0;border-radius:6px;background:#3b82f6}
+.est-money{background:var(--raise);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-top:10px}
+.est-money>b{font-size:24px;font-weight:800;color:#4ade80;letter-spacing:-.5px}
+.est-money>span{display:block;font-size:12.5px;color:#aab3c5}
 .est-why{font-size:13px;color:#c2cad8;line-height:1.45}
 .seg{display:flex;background:#0e1424;border:1px solid #2a3450;border-radius:12px;padding:3px;margin-top:4px}
 .seg button{flex:1;font-size:13px;font-weight:700;padding:7px 4px;border-radius:9px;color:#9aa5bb}
@@ -1168,15 +1171,26 @@ function streak(){
    time they've had to respond) and bookings pull the rate toward your real number as data grows. */
 const BASE_RATE=0.02,PRIOR_CARDS=150,TAU=10;
 const F=d=>1-Math.exp(-Math.max(0,d)/TAU);
+/* Two groups: cards left without talking (baseline ~2%) and people talked to in person (baseline ~10%,
+   face-to-face books far more often). Each group blends toward your own booking rate as data grows. */
+const TALK_RATE=0.10,TALK_PRIOR=30;
+function grp(booked,eff,p0,k){const a=booked+p0*k,b=Math.max(0,eff-booked)+(1-p0)*k,rate=a/(a+b),sd=Math.sqrt(a*b/((a+b)**2*(a+b+1)));
+  return {rate,lo:Math.max(p0/6,rate-1.28*sd),hi:rate+1.28*sd,wOwn:eff/(eff+k),own:eff>=5?booked/eff:null}}
 function expected(days){
-  const now=Date.now();let eff=0,booked=0;const open=[];
-  for(const h of houses){if(!isCard(h))continue;const age=(now-h.created)/DAY;eff+=F(age);
-    if(h.status==="booked")booked++;else if(h.status==="left"||h.status==="talked")open.push(age)}
-  const a=booked+BASE_RATE*PRIOR_CARDS,b=Math.max(0,eff-booked)+(1-BASE_RATE)*PRIOR_CARDS;
-  const rate=a/(a+b),sd=Math.sqrt(a*b/((a+b)**2*(a+b+1)));
-  const lo=Math.max(.003,rate-1.28*sd),hi=rate+1.28*sd; // ~80% range
-  let w=0;for(const age of open)w+=(F(age+days)-F(age))/(1-rate*F(age)); // chance each open card calls inside the window, per unit of rate
-  return {open:open.length,eff,booked,rate,lo,hi,own:eff>=5?booked/eff:null,wOwn:eff/(eff+PRIOR_CARDS),mid:rate*w,low:lo*w,high:hi*w}}
+  const now=Date.now(),C={eff:0,booked:0,open:[]},T={eff:0,booked:0,open:[]};
+  for(const h of houses){if(!isCard(h))continue;const age=(now-h.created)/DAY,g=h.history.some(x=>x.s==="talked")?T:C;g.eff+=F(age);
+    if(h.status==="booked")g.booked++;else if(h.status==="left"||h.status==="talked")g.open.push(age)}
+  const c=grp(C.booked,C.eff,BASE_RATE,PRIOR_CARDS),t=grp(T.booked,T.eff,TALK_RATE,TALK_PRIOR);
+  const win=(g,r)=>{let w=0,all=0;for(const age of g.open){w+=(F(age+days)-F(age))/(1-r*F(age));all+=(1-F(age))/(1-r*F(age))}return [w,all]};
+  const [wc,ac]=win(C,c.rate),[wt,at]=win(T,t.rate);
+  const eff=C.eff+T.eff,booked=C.booked+T.booked;
+  return {open:C.open.length+T.open.length,talkedOpen:T.open.length,eff,booked,rate:c.rate,lo:c.lo,hi:c.hi,tRate:t.rate,
+    own:eff>=5?booked/eff:null,wOwn:eff/(eff+PRIOR_CARDS),
+    low:c.lo*wc+t.lo*wt,mid:c.rate*wc+t.rate*wt,high:c.hi*wc+t.hi*wt,
+    allLow:c.lo*ac+t.lo*at,allHigh:c.hi*ac+t.hi*at}}
+/* average job $: your own prices (booked houses + other jobs), else a typical detail price you can change */
+function avgTicket(){const v=houses.filter(h=>h.status==="booked"&&h.amount).map(h=>h.amount).concat(biz.jobs.map(j=>j.amount).filter(Boolean));
+  return v.length?{v:v.reduce((a,b)=>a+b,0)/v.length,own:true,n:v.length}:{v:settings.avgJob||150,own:false}}
 const fmtN=x=>x<0.05?"0":x<10?x.toFixed(1).replace(/\.0$/,""):String(Math.round(x));
 const pct=r=>(Math.round(r*1000)/10)+"%";
 
@@ -1237,6 +1251,9 @@ function renderStats(){
     <div class="est-l">Expected new clients<br>(from ${ex.open.toLocaleString()} open card${ex.open==1?"":"s"}, next ${ed} days)</div>
     <div class="est-n">${ex.open?`${fmtN(ex.low)} – ${fmtN(ex.high)}`:"—"}<button id="estWhy" aria-label="How this is worked out">i</button></div>
     <div class="seg" id="estSeg">${[7,14,30].map(d=>`<button data-d="${d}" class="${d===ed?"on":""}">${d} days</button>`).join("")}</div>
+    ${ex.open?(()=>{const t=avgTicket();return `<div class="est-money"><b>${money(ex.low*t.v)} – ${money(ex.high*t.v)}</b><span>expected revenue, next ${ed} days</span>
+      <div class="sx-note" style="margin-top:6px">All ${ex.open.toLocaleString()} open card${ex.open==1?"":"s"}${ex.talkedOpen?` (${ex.talkedOpen} talked to)`:""} could still bring about <b style="color:#e2e8f0">${fmtN(ex.allLow)}–${fmtN(ex.allHigh)} clients · ${money(ex.allLow*t.v)}–${money(ex.allHigh*t.v)}</b> in total.
+      Based on ${t.own?`your average job of ${money(t.v)} (${t.n} job${t.n==1?"":"s"})`:`a typical job of ${money(t.v)}`}${t.own?"":` · <button id="avgEdit" style="color:#60a5fa;font-weight:700">change</button>`}.</div></div>`})():""}
     <div class="est-bar"><i style="left:0;width:${Math.max(3,Math.round(ex.wOwn*100))}%"></i></div>
     <div class="est-why">${ex.open
       ?`Based on ${basis}, you can expect about ${fmtN(ex.low)}–${fmtN(ex.high)} new clients from cards already out, in the next ${ed} days.`
@@ -1282,6 +1299,8 @@ function renderStats(){
   [["#selS","sRange"],["#selC","cRange"],["#selO","oRange"]].forEach(([id,k])=>$(id).onchange=e=>{settings[k]=e.target.value;saveSettings();renderStats()});
   $("#estSeg").querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{haptic();settings.estDays=+b.dataset.d;saveSettings();renderStats()});
   $("#estWhy").onclick=()=>estSheet(ex);
+  const ae=$("#avgEdit");if(ae)ae.onclick=()=>{sheetOpen(`<div class="sh-addr">Typical job price</div><div class="sh-sub">Used for revenue estimates until you log your own job prices</div>${amtBox("avgIn",settings.avgJob||150)}<button class="primary" id="avgSave">Save</button>`);
+    $("#avgSave").onclick=()=>{const v=parseAmt($("#avgIn").value);if(v){settings.avgJob=v;saveSettings()}sheetClose();renderStats()}};
   $("#addBuy").onclick=buySheet;$("#addJob").onclick=jobSheet;
   $("#stats").querySelectorAll("[data-buy]").forEach(b=>b.onclick=()=>removeEntry("buys",b.dataset.buy));
   $("#stats").querySelectorAll("[data-job]").forEach(b=>b.onclick=()=>removeEntry("jobs",b.dataset.job));
@@ -1327,6 +1346,7 @@ async function removeEntry(kind,id){
 function estSheet(ex){
   sheetOpen(`<div class="sh-addr">How the estimate works</div><div class="why">
     <p><b>1. How many cards turn into clients.</b> Business cards and door hangers for home services (detailing, window washing, lawn care) usually get about 1–4% response, with 2–3% the most common figure. We start at ${pct(BASE_RATE)}.</p>
+    <p><b>People you talk to.</b> Talking to someone at the door books far more often than a card alone. We start those at ${pct(TALK_RATE)} (yours so far: ${pct(ex.tRate)}).</p>
     <p><b>2. Your own results take over.</b> Every card you log and every house you mark Booked moves the rate toward your real booking rate. Right now ${Math.round(ex.wOwn*100)}% of the estimate is based on you${ex.own!=null?` (your rate so far: ${pct(ex.own)})`:""}. Around 150 cards that have had time to respond, it's half yours.</p>
     <p><b>3. When people call.</b> Most calls come in the first week or two, then trickle in for months. We assume about half of all calls in week 1, three quarters by day 14, nearly all by day 30. Older cards have already had most of their chance, so they count for less.</p>
     <p><b>4. A range, not one number.</b> The low and high numbers cover the likely spread (about 80% sure). Current rate range: ${pct(ex.lo)} to ${pct(ex.hi)}.</p>
@@ -1414,7 +1434,7 @@ setInterval(()=>{checkNear();if(curTab==="list")renderList()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderAll()}});
 
 /* ---------- offline + updates ---------- */
-const APP_VERSION="2.0.1";
+const APP_VERSION="2.1.0";
 $("#verLbl").textContent="Version "+APP_VERSION;
 let swReg=null;
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").then(r=>swReg=r).catch(()=>{});
