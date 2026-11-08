@@ -102,7 +102,7 @@ body.selecting .mlegend,body.selecting .street,body.selecting .near,body.selecti
 .me-wrap>*{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
 .me-pulse{width:80px;height:80px;border-radius:50%;background:rgba(37,99,235,.35);animation:mepulse 2s ease-out infinite;will-change:transform,opacity}
 @keyframes mepulse{0%{transform:translate(-50%,-50%) scale(.275);opacity:.9}100%{transform:translate(-50%,-50%) scale(1);opacity:0}}
-.me-cone{width:90px;height:90px;transform-origin:50% 50%;transform:translate(-50%,-50%) rotate(var(--hd,0deg));opacity:0;transition:opacity .3s}
+.me-cone{width:150px;height:150px;transform-origin:50% 50%;transform:translate(-50%,-50%) rotate(var(--hd,0deg));opacity:0;transition:opacity .3s}
 .me-cone.on{opacity:1}
 .street{position:absolute;left:12px;top:calc(var(--sat) + var(--tbH,66px) + 18px);z-index:505;background:rgba(255,255,255,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:14px;padding:9px 12px;min-width:190px;max-width:70vw;box-shadow:0 6px 18px rgba(15,23,42,.16),0 0 0 .5px rgba(15,23,42,.1);animation:drop .25s ease}
 .street b{font-size:14px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -962,10 +962,10 @@ function onPos(p){
   if(me.raw<=GOOD_ACC)roughSince=0;else if(!roughSince)roughSince=Date.now();gpsWarnUpdate();
   // iPhone "Precise Location" off = fixes 1+ km off. Tell the owner once.
   if(c.accuracy>500&&Date.now()-gpsStart>15000){if(++badFixes>=3&&!preciseTold){preciseTold=true;toast("Location is rough. Turn on Precise Location: Settings › Privacy › Location Services › Safari Websites.",null,7000)}}else if(c.accuracy<100)badFixes=0;
-  if(!meMarker){meMarker=mk('<div style="pointer-events:none"><div class="me-wrap"><div class="me-acc" id="meAcc"></div><svg class="me-cone" id="meCone" viewBox="0 0 90 90"><defs><radialGradient id="cg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#2563eb" stop-opacity=".55"/><stop offset="1" stop-color="#2563eb" stop-opacity="0"/></radialGradient></defs><path d="M45 45 L28 3 A44 44 0 0 1 62 3 Z" fill="url(#cg)"/></svg><div class="me-pulse"></div><div class="me"></div></div></div>',me.lat,me.lng);meMarker.getElement().style.zIndex=5}
+  if(!meMarker){meMarker=mk('<div style="pointer-events:none"><div class="me-wrap"><div class="me-acc" id="meAcc"></div><svg class="me-cone" id="meCone" viewBox="0 0 150 150"><defs><radialGradient id="cg" cx="75" cy="75" r="72" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#3b82f6" stop-opacity=".95"/><stop offset=".55" stop-color="#3b82f6" stop-opacity=".55"/><stop offset="1" stop-color="#3b82f6" stop-opacity="0"/></radialGradient></defs><path id="meBeam" d="" fill="url(#cg)"/></svg><div class="me-pulse"></div><div class="me"></div></div></div>',me.lat,me.lng);meMarker.getElement().style.zIndex=5}
   else glideMe(me.lat,me.lng);
   drawAcc();
-  if(c.heading!=null&&!isNaN(c.heading)&&c.speed>0.7)setHeading(c.heading,"gps");
+  if(c.heading!=null&&!isNaN(c.heading)&&c.speed>0.7)setHeading(c.heading,"gps",25);
   updateStreet();
   // first time: wait (up to 4 s) for a sharp fix before zooming in on you
   if(firstFix){if(me.acc<=60||Date.now()-gpsStart>4000){firstFix=false;if(!settings.lastView||settings.lastView.z<15||locateRequested)go(me.lat,me.lng,me.acc<=60?18:16);locateRequested=false}}
@@ -979,26 +979,39 @@ function glideMe(lat,lng){if(!meMarker)return;cancelAnimationFrame(glideRaf);con
 /* facing direction for the cone. Compass (where the phone points) wins; GPS course is only used
    while moving when there's no compass. Smoothed so it doesn't jitter, and kept right when the map rotates. */
 let headRaf=0,headSm=null,headSrc="",compassAt=0,headUp=false;
-function drawHeading(){if(headUp)headUpTurn();cancelAnimationFrame(headRaf);headRaf=requestAnimationFrame(()=>{const c=document.getElementById("meCone");if(c&&headSm!=null){c.style.setProperty("--hd",(headSm-map.getBearing())+"deg");c.classList.add("on")}})}
-function setHeading(h,src){if(src==="gps"&&Date.now()-compassAt<3000)return;
+let headAcc=25;
+// beam half-width in degrees: narrow when the compass is sure, wider when it isn't (like Apple Maps)
+function beamPath(half){half=Math.max(18,Math.min(55,half));const r=72,a=half*Math.PI/180,x1=75-r*Math.sin(a),x2=75+r*Math.sin(a),y=75-r*Math.cos(a);
+  return "M75 75 L"+x1.toFixed(1)+" "+y.toFixed(1)+" A"+r+" "+r+" 0 0 1 "+x2.toFixed(1)+" "+y.toFixed(1)+" Z"}
+let beamHalf=0;
+function drawHeading(){if(headUp)headUpTurn();cancelAnimationFrame(headRaf);headRaf=requestAnimationFrame(()=>{const c=document.getElementById("meCone");if(c&&headSm!=null){
+  const want=Math.round(Math.max(18,Math.min(55,headAcc)));if(want!==beamHalf){beamHalf=want;const b=document.getElementById("meBeam");if(b)b.setAttribute("d",beamPath(want))}
+  c.style.setProperty("--hd",(headSm-map.getBearing())+"deg");c.classList.add("on")}})}
+function setHeading(h,src,acc){if(src==="gps"&&Date.now()-compassAt<3000)return;headAcc=acc==null?25:acc;
   h=((h%360)+360)%360;
   if(headSm==null||src!==headSrc)headSm=h;
   else{let d=h-headSm;if(d>180)d-=360;if(d<-180)d+=360;headSm=((headSm+d*(src==="gps"?.5:.25))%360+360)%360}
   headSrc=src;drawHeading()}
 map.on("rotate",drawHeading);
 function screenAngle(){const o=screen.orientation;return o&&typeof o.angle==="number"?o.angle:(typeof window.orientation==="number"?window.orientation:0)}
-function onOrient(e){let h=null;
-  if(e.webkitCompassHeading!=null&&e.webkitCompassHeading>=0){if(e.webkitCompassAccuracy!=null&&e.webkitCompassAccuracy>45)return;h=e.webkitCompassHeading+screenAngle()}
+let calTold=false;
+function onOrient(e){let h=null,acc=22;
+  if(e.webkitCompassHeading!=null&&e.webkitCompassHeading>=0){h=e.webkitCompassHeading+screenAngle();const a=e.webkitCompassAccuracy;
+    if(a!=null)acc=a<0?55:Math.max(14,a);
+    if(a!=null&&(a<0||a>50)&&!calTold&&Date.now()-gpsStart>8000){calTold=true;toast("Compass is unsure. Wave your phone in a figure 8 to fix the direction arrow.",null,5000)}}
   else if(e.absolute&&e.alpha!=null)h=360-e.alpha+screenAngle();
-  if(h!=null){compassAt=Date.now();setHeading(h,"compass")}}
-let compassOn=false,compassAsked=false;
+  if(h!=null){compassAt=Date.now();setHeading(h,"compass",acc)}}
+let compassOn=false,compassAsked=false,compassDenied=false;
 function startCompass(){if(compassOn)return;
   const D=window.DeviceOrientationEvent;if(!D)return;
   if(typeof D.requestPermission==="function"){if(compassAsked)return;compassAsked=true;
-    D.requestPermission().then(r=>{if(r==="granted"){compassOn=true;addEventListener("deviceorientation",onOrient)}}).catch(()=>{compassAsked=false})}
+    D.requestPermission().then(r=>{if(r==="granted"){compassOn=true;addEventListener("deviceorientation",onOrient)}
+      else{compassDenied=true;toast("Can't show which way you're facing: motion access is off. Turn on Settings › Apps › Safari › Motion & Orientation Access, then close and reopen Card Drop.",null,9000)}})
+      .catch(()=>{compassAsked=false})} // not from a tap: try again on the next one
   else{compassOn=true;addEventListener("deviceorientationabsolute",onOrient);addEventListener("deviceorientation",onOrient)}}
 // iPhone only lets the compass start from a tap: turn it on with the first tap anywhere (not just the locate button)
-if(settings.onboarded){const first=()=>{startCompass();removeEventListener("touchend",first,true);removeEventListener("click",first,true)};
+{const first=()=>{if(compassOn||compassDenied){removeEventListener("touchend",first,true);removeEventListener("click",first,true);return}
+  if(settings.onboarded)startCompass()};
   addEventListener("touchend",first,true);addEventListener("click",first,true)}
 function onPosErr(e){
   if(e.code===1){toast("Location is off. Turn it on in Settings › Privacy › Location Services › Safari Websites.",null,6000)}
@@ -1740,7 +1753,7 @@ setInterval(()=>{checkNear();if(curTab==="list")renderList()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderAll()}});
 
 /* ---------- offline + updates ---------- */
-const APP_VERSION="2.2.7";
+const APP_VERSION="2.2.8";
 $("#verLbl").textContent="Version "+APP_VERSION;
 let swReg=null;
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").then(r=>swReg=r).catch(()=>{});
