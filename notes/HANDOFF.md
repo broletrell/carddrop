@@ -1,5 +1,5 @@
 # Card Drop — status (read this first)
-**Updated:** 2026-11-08 session 4. LIVE **v2.2.6**. Full record: `HISTORY.md` (grep only). Old handoffs: `handoffs/`.
+**Updated:** 2026-11-08 session 4. LIVE **v2.2.7**. Full record: `HISTORY.md` (grep only). Old handoffs: `handoffs/`.
 
 ## Basics
 - Phone PWA for Trell's detailing business: mark houses where cards were left. Owner on iPhone. LIVE
@@ -7,7 +7,7 @@
 - One `index.html` (vanilla JS, MapLibre 5.6.1, pmtiles 3.2.1), `sw.js`, `version.json`. Data: `carddrop.v1` houses,
   `carddrop.biz.v1` {buys,jobs}, `carddrop.settings.v1` (per phone), `carddrop.sync.v1` (shared-map state).
 - Sync server: `../carddrop-sync/` (Worker `carddrop-sync` + D1 `carddrop-sync`, local git only). README there.
-- Release: bump `APP_VERSION` + `version.json` + `CACHE` in sw.js (now carddrop-v26), commit, push, poll version.json.
+- Release: bump `APP_VERSION` + `version.json` + `CACHE` in sw.js (now carddrop-v27), commit, push, poll version.json.
 - Look: dark navy theme = "app theme v2" block at END of <style>. Never use var(--ink) as a background.
 
 ## Testing
@@ -61,6 +61,12 @@
 - Presence now carries sp (speed) + cr (GPS course); partner dot extrapolates along cr up to 6 s, redrawn every 1 s (smooth glide).
 - Sync every 2–3 s while sharing or partner live (1 s ticker: tick%5 in {0,2}), else 5 s. Presence resend: moved >2 m / 10 s / turned.
 - Test gotcha: navigating away from the app saves its old sync state on hide — set localStorage from another page (e.g. /version.json).
+
+## Session 4h (v2.2.7)
+- Map rotation on: two-finger twist (MapLibre inertia), no tilt (touchPitch off, maxPitch 0). Compass button (#btnCompass) under map
+  buttons shows when bearing ≠ 0; tap → north. Locate: 1st tap = go to me, 2nd tap (me centered, z≥16) = "map turns with you"
+  (headUp: map bearing follows headSm, throttled 250 ms/3°), 3rd tap = off + north. User drag/rotate ends headUp.
+- Two-finger twist not testable in browser pane; compass + rotateTo verified.
 
 ## Open / unverified
 - Nothing phone-tested by owner yet (multi-select, fast start, shared map, marker). Test teams deleted from D1 (0 teams).

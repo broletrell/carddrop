@@ -40,3 +40,4 @@ Never read at session start. grep it. Older full handoffs: `handoffs/`.
 - 2026-11-08 v2.2.4: partner live location (presence table, faded last spot), house numbers on green dots from OSM.
 - 2026-11-08 v2.2.5: partner accuracy circle + rough-spot label; field report of 150 m offset (owner GPS likely rough).
 - 2026-11-08 v2.2.6: share only good GPS fixes, Finding-GPS pill, partner dot prediction (sp/cr), 2–3 s live sync.
+- 2026-11-08 v2.2.7: map rotation (two-finger twist), compass button, locate 2nd tap = map turns with you.

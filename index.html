@@ -425,6 +425,11 @@ html,body{background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialias
 .peer.stale .pdot{background:#94a3b8;box-shadow:0 2px 6px rgba(0,0,0,.3)}
 .peer.stale .pname{background:#64748b}
 .gpswarn{bottom:auto;top:calc(env(safe-area-inset-top) + 64px);background:rgba(180,83,9,.92)!important;color:#fff}
+/* compass: shows when the map is turned; tap to point north */
+.compass{position:absolute;right:16px;top:calc(50% + 92px);z-index:500;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--glass);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 6px 18px rgba(2,6,23,.35),0 0 0 1px rgba(148,163,184,.14);transition:opacity .25s}
+.compass.hidden{display:grid!important;opacity:0;pointer-events:none}
+body.selecting .compass{display:none!important}
+#btnLocate.head svg{transform:rotate(-45deg)}
 </style>
 </head>
 <body class="on-map">
@@ -445,6 +450,7 @@ html,body{background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialias
       <button class="rbtn" id="btnSelect" aria-label="Select many houses"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.7 2.7L16.5 9.5"/></svg></button>
       <button class="rbtn" id="btnLocate" aria-label="Find me"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M21 3 3 10.5l7.5 3L13.5 21z"/></svg></button>
     </div>
+    <button class="compass hidden" id="btnCompass" aria-label="Point map north"><svg width="30" height="30" viewBox="0 0 30 30" id="compassNeedle"><path d="M15 3 19 15H11z" fill="#ef4444"/><path d="M15 27 11 15h8z" fill="#cbd5e1"/><text x="15" y="12.5" text-anchor="middle" font-size="5.5" font-weight="800" fill="#fff" font-family="-apple-system,system-ui,sans-serif">N</text></svg></button>
     <div class="selbar hidden" id="selBar"><b id="selN">Tap houses to select</b><button id="selClear">Clear</button><button id="selDone">Done</button></div>
     <div class="selact hidden" id="selAct">
       <div class="selmode" id="selMode"><button data-m="tap" class="on">Tap to pick</button><button data-m="swipe">Swipe to pick</button></div>
@@ -688,8 +694,8 @@ let me=null; // my GPS position (declared early: auto map style reads it at star
 /* ---------- map ---------- */
 const startView=settings.lastView||{lat:38.58,lng:-121.49,z:12};
 const map=new maplibregl.Map({container:"map",style:{version:8,sources:{},layers:[{id:"bg",type:"background",paint:{"background-color":"#0d1424"}}]},center:[startView.lng,startView.lat],zoom:startView.z,maxZoom:21,
-  dragRotate:false,pitchWithRotate:false,attributionControl:{compact:true}});
-map.touchZoomRotate.disableRotation();window.cdMap=map;
+  dragRotate:true,pitchWithRotate:false,maxPitch:0,attributionControl:{compact:true}});
+map.touchPitch.disable();map.keyboard.disableRotation();window.cdMap=map; // two-finger twist turns the map (with spin-down); no tilt
 const go=(lat,lng,z)=>map.flyTo({center:[lng,lat],zoom:z==null?map.getZoom():z,speed:1.4,curve:1.3,essential:true});
 const pan=(lat,lng)=>map.easeTo({center:[lng,lat],duration:500});
 function mk(html,lat,lng,click){const w=document.createElement("div");w.innerHTML=html;const el=w.firstElementChild;
@@ -972,8 +978,8 @@ function glideMe(lat,lng){if(!meMarker)return;cancelAnimationFrame(glideRaf);con
   const step=()=>{const f=Math.min(1,(performance.now()-t0)/D),e=1-(1-f)*(1-f);meMarker.setLngLat([a.lng+(lng-a.lng)*e,a.lat+(lat-a.lat)*e]);if(f<1)glideRaf=requestAnimationFrame(step)};step()}
 /* facing direction for the cone. Compass (where the phone points) wins; GPS course is only used
    while moving when there's no compass. Smoothed so it doesn't jitter, and kept right when the map rotates. */
-let headRaf=0,headSm=null,headSrc="",compassAt=0;
-function drawHeading(){cancelAnimationFrame(headRaf);headRaf=requestAnimationFrame(()=>{const c=document.getElementById("meCone");if(c&&headSm!=null){c.style.setProperty("--hd",(headSm-map.getBearing())+"deg");c.classList.add("on")}})}
+let headRaf=0,headSm=null,headSrc="",compassAt=0,headUp=false;
+function drawHeading(){if(headUp)headUpTurn();cancelAnimationFrame(headRaf);headRaf=requestAnimationFrame(()=>{const c=document.getElementById("meCone");if(c&&headSm!=null){c.style.setProperty("--hd",(headSm-map.getBearing())+"deg");c.classList.add("on")}})}
 function setHeading(h,src){if(src==="gps"&&Date.now()-compassAt<3000)return;
   h=((h%360)+360)%360;
   if(headSm==null||src!==headSrc)headSm=h;
@@ -1000,11 +1006,28 @@ function onPosErr(e){
   else toast("Can't find your location right now");
 }
 let locateRequested=false;
+// locate button like Apple Maps: 1st tap = go to me, 2nd tap (already there) = map turns with you, 3rd = back to north
+function setHeadUp(on){headUp=on;$("#btnLocate").classList.toggle("on",on);$("#btnLocate").classList.toggle("head",on);
+  if(on){follow=true;toast("Map turns with you",null,1400);if(headSm!=null)map.easeTo({bearing:headSm,center:[me.lng,me.lat],duration:500})}
+  else{follow=!!settings.follow}}
 $("#btnLocate").onclick=()=>{
   haptic();startCompass();
-  if(me){go(me.lat,me.lng,Math.max(map.getZoom(),18))}else{locateRequested=true;toast("Finding you…",null,1800)}
+  if(headUp){setHeadUp(false);map.easeTo({bearing:0,duration:450});return}
+  if(me){const p=map.project([me.lng,me.lat]),c=map.getContainer(),near=Math.abs(p.x-c.clientWidth/2)<40&&Math.abs(p.y-c.clientHeight/2)<40;
+    if(near&&map.getZoom()>=16)setHeadUp(true);else go(me.lat,me.lng,Math.max(map.getZoom(),18))}
+  else{locateRequested=true;toast("Finding you…",null,1800)}
   startGPS();
 };
+let headTurnAt=0;
+function headUpTurn(){if(!headUp||headSm==null||!me||map.isMoving())return;const now=Date.now();if(now-headTurnAt<250)return;
+  let d=headSm-map.getBearing();d=((d%360)+540)%360-180;if(Math.abs(d)<3)return;headTurnAt=now;
+  map.easeTo({bearing:headSm,center:[me.lng,me.lat],duration:300,easing:t=>t})}
+function drawCompass(){const b=map.getBearing(),el=$("#btnCompass");el.classList.toggle("hidden",Math.abs(b)<1.5&&!headUp);$("#compassNeedle").style.transform="rotate("+(-b)+"deg)"}
+map.on("rotate",drawCompass);
+$("#btnCompass").onclick=()=>{haptic();if(headUp)setHeadUp(false);map.easeTo({bearing:0,duration:450})};
+// you moving the map yourself ends "map turns with you"
+map.on("dragstart",e=>{if(headUp&&e.originalEvent)setHeadUp(false)});
+map.on("rotatestart",e=>{if(headUp&&e.originalEvent)setHeadUp(false)});
 map.on("dragstart",()=>{if(follow&&!settings.follow)follow=false});
 
 /* proximity warning */
@@ -1717,7 +1740,7 @@ setInterval(()=>{checkNear();if(curTab==="list")renderList()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderAll()}});
 
 /* ---------- offline + updates ---------- */
-const APP_VERSION="2.2.6";
+const APP_VERSION="2.2.7";
 $("#verLbl").textContent="Version "+APP_VERSION;
 let swReg=null;
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").then(r=>swReg=r).catch(()=>{});
