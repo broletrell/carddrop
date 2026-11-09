@@ -681,6 +681,8 @@ const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function dist(a,b,c,d){const R=6371000,r=Math.PI/180,x=(c-a)*r,y=(d-b)*r;const h=Math.sin(x/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin(y/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
 const ft=m=>Math.round(m*3.28084);
+/* work day: drops before 5 AM count for the day before (late-night rounds) */
+const workDay=t=>t-5*3600e3;
 function dayKey(t){const d=new Date(t);return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()}
 function ago(t){const s=(Date.now()-t)/1000;if(s<60)return"just now";if(s<3600)return Math.floor(s/60)+" min ago";if(s<86400)return Math.floor(s/3600)+" hr ago";const d=Math.floor(s/86400);if(d<7)return d+(d==1?" day ago":" days ago");return new Date(t).toLocaleDateString(undefined,{month:"short",day:"numeric",year:d>300?"numeric":undefined})}
 function fmtDate(t){return new Date(t).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}
@@ -1392,10 +1394,10 @@ const money2=n=>"$"+(Math.round((n||0)*100)/100).toLocaleString(undefined,{minim
 const noon=t=>{const d=new Date(t);d.setHours(12,0,0,0);return +d};
 /* streak = days in a row with at least one card handed out. Today without cards yet doesn't break it. */
 function streak(){
-  const days=[...new Set(houses.filter(isCard).map(h=>noon(h.created)))].sort((a,b)=>a-b);
+  const days=[...new Set(houses.filter(isCard).map(h=>noon(workDay(h.created))))].sort((a,b)=>a-b);
   const set=new Set(days);let best=0,run=0,prev=null;
   for(const d of days){run=prev!=null&&Math.round((d-prev)/DAY)===1?run+1:1;if(run>best)best=run;prev=d}
-  const d=new Date(noon(Date.now()));const today=set.has(+d);if(!today)d.setDate(d.getDate()-1);
+  const d=new Date(noon(workDay(Date.now())));const today=set.has(+d);if(!today)d.setDate(d.getDate()-1);
   let cur=0;while(set.has(noon(+d))){cur++;d.setDate(d.getDate()-1)}
   return {cur,best,today}}
 
@@ -1460,8 +1462,8 @@ function renderStats(){
     stockTxt=Math.max(0,left).toLocaleString();
     stockNote=left<0?`You've handed out ${(-left).toLocaleString()} more than you logged. Add older purchases.`:left<=50?"Running low. Time to order more.":"";}
   const roi=c.spent>0?c.cardRev/c.spent:null;
-  const days=[];for(let i=6;i>=0;i--){const d=new Date(noon(Date.now()));d.setDate(d.getDate()-i);const k=dayKey(+d);
-    days.push({l:d.toLocaleDateString(undefined,{weekday:"narrow"}),n:houses.filter(h=>isCard(h)&&dayKey(h.created)===k).length})}
+  const days=[];for(let i=6;i>=0;i--){const d=new Date(noon(workDay(Date.now())));d.setDate(d.getDate()-i);const k=dayKey(+d);
+    days.push({l:d.toLocaleDateString(undefined,{weekday:"narrow"}),n:houses.filter(h=>isCard(h)&&dayKey(workDay(h.created))===k).length})}
   const max=Math.max(1,...days.map(d=>d.n));
   const basis=ex.wOwn<.15?`the industry average (about ${pct(BASE_RATE)} of cards become clients)`
     :`a ${pct(ex.rate)} booking rate (${Math.round(ex.wOwn*100)}% from your own results, the rest industry average)`;
@@ -1792,7 +1794,7 @@ setInterval(()=>{checkNear();if(curTab==="list")renderList()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderAll()}});
 
 /* ---------- offline + updates ---------- */
-const APP_VERSION="2.3.3";
+const APP_VERSION="2.3.4";
 $("#verLbl").textContent="Version "+APP_VERSION;
 let swReg=null;
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").then(r=>swReg=r).catch(()=>{});
