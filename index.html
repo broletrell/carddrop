@@ -606,6 +606,8 @@ let settings=Object.assign({biz:"",near:true,radius:25,follow:false,layer:"auto"
 const BKEY="carddrop.biz.v1";
 let biz=load(BKEY,{});if(!biz||typeof biz!=="object")biz={};
 if(!Array.isArray(biz.buys))biz.buys=[];if(!Array.isArray(biz.jobs))biz.jobs=[];
+/* one-time fix (v2.3.5): the 250 cards bought Sep 16 were all handed out before the app tracked them */
+const FIX1="carddrop.fix.sep16";
 function persistBiz(){syncMark(["b","j"]);try{localStorage.setItem(BKEY,JSON.stringify(biz))}catch(e){toast("Couldn't save. Phone storage may be full.")}}
 /* ---------- "you left off here": last house added or changed on THIS phone ----------
    Only status, notes, amount, history or position count, so background address lookups don't move it. */
@@ -635,7 +637,7 @@ function syncMark(kinds){if(!sync)return;const now=Date.now();let n=0;
   if(n){saveSync();syncSoon(1500)}}
 function syncClean(k,d){if(!d||typeof d!=="object"||!d.id)return null;
   const S=(v,n)=>String(v==null?"":v).slice(0,n||200),N=v=>{const x=+v;return isFinite(x)?x:0},P=v=>{const x=+v;return isFinite(x)&&x>0?x:0};
-  if(k==="b")return {id:S(d.id,64),t:N(d.t),qty:Math.round(P(d.qty)),cost:P(d.cost)};
+  if(k==="b"){const o={id:S(d.id,64),t:N(d.t),qty:Math.round(P(d.qty)),cost:P(d.cost)};if(d.used)o.used=true;return o}
   if(k==="j")return {id:S(d.id,64),t:N(d.t),amount:P(d.amount),source:S(d.source||"Other",30),note:S(d.note,60)};
   if(typeof d.lat!=="number"||typeof d.lng!=="number"||!isFinite(d.lat)||!isFinite(d.lng))return null;
   const o={id:S(d.id,64),lat:d.lat,lng:d.lng,status:STATUS[d.status]?d.status:"left",addr:S(d.addr),num:S(d.num,20),street:S(d.street),city:S(d.city),
@@ -1457,8 +1459,10 @@ function renderStats(){
   const st=streak(),ed=[7,14,30].includes(settings.estDays)?settings.estDays:14,ex=expected(ed);
   // cards in stock: everything bought, minus cards handed out since the first logged purchase
   let stockTxt="—",stockSub="Cards in stock",stockNote="";
-  if(biz.buys.length){const first=Math.min(...biz.buys.map(b=>b.t)),d0=new Date(first);d0.setHours(0,0,0,0);
-    const bought=biz.buys.reduce((a,b)=>a+(b.qty||0),0),used=houses.filter(h=>isCard(h)&&h.created>=+d0).length,left=bought-used;
+  // purchases marked "used up" (handed out before you tracked them) still count as spending, not as stock
+  const stockBuys=biz.buys.filter(b=>!b.used);
+  if(stockBuys.length){const first=Math.min(...stockBuys.map(b=>b.t)),d0=new Date(first);d0.setHours(0,0,0,0);
+    const bought=stockBuys.reduce((a,b)=>a+(b.qty||0),0),used=houses.filter(h=>isCard(h)&&h.created>=+d0).length,left=bought-used;
     stockTxt=Math.max(0,left).toLocaleString();
     stockNote=left<0?`You've handed out ${(-left).toLocaleString()} more than you logged. Add older purchases.`:left<=50?"Running low. Time to order more.":"";}
   const roi=c.spent>0?c.cardRev/c.spent:null;
@@ -1513,7 +1517,7 @@ function renderStats(){
       :biz.buys.length?`No card spending in the ${RLONG[cr]}. Pick a longer range to see your return.`:`Add your card purchases to see cost, stock and return.`}
       ${c.bought&&c.spent?` Cost per card: ${money2(c.spent/c.bought)}.`:""}${stockNote?`<br><b style="color:#fbbf24">${stockNote}</b>`:""}</div>
     <button class="addb" id="addBuy">${SVG(IC.plus,18)}Add cards bought</button>
-    ${buys.length?`<div class="logl">${buys.map(b=>`<button data-buy="${b.id}"><div>${b.qty.toLocaleString()} cards<small>${shortDate(b.t)}</small></div><em>${money2(b.cost)}</em></button>`).join("")}</div>`:""}
+    ${buys.length?`<div class="logl">${buys.map(b=>`<button data-buy="${b.id}"><div>${b.qty.toLocaleString()} cards<small>${shortDate(b.t)}${b.used?" · used up":""}</small></div><em>${money2(b.cost)}</em></button>`).join("")}</div>`:""}
   </div>
 
   <div class="sx">
@@ -1541,7 +1545,7 @@ function renderStats(){
   const ae=$("#avgEdit");if(ae)ae.onclick=()=>{sheetOpen(`<div class="sh-addr">Typical job price</div><div class="sh-sub">Used for revenue estimates until you log your own job prices</div>${amtBox("avgIn",settings.avgJob||150)}<button class="primary" id="avgSave">Save</button>`);
     $("#avgSave").onclick=()=>{const v=parseAmt($("#avgIn").value);if(v){settings.avgJob=v;saveSettings()}sheetClose();renderStats()}};
   $("#addBuy").onclick=buySheet;$("#addJob").onclick=jobSheet;
-  $("#stats").querySelectorAll("[data-buy]").forEach(b=>b.onclick=()=>removeEntry("buys",b.dataset.buy));
+  $("#stats").querySelectorAll("[data-buy]").forEach(b=>b.onclick=()=>buyActions(b.dataset.buy));
   $("#stats").querySelectorAll("[data-job]").forEach(b=>b.onclick=()=>removeEntry("jobs",b.dataset.job));
 }
 
@@ -1578,6 +1582,14 @@ function jobSheet(){
     biz.jobs.push({id:uid(),t:noDate?0:dateToT($("#jDate").value),amount,source:src,note:$("#jNote").value.trim()});persistBiz();sheetClose();renderStats();haptic();
     toast(`Added ${money2(amount)} job${noDate?" · shows in All Time":""}`)};
 }
+/* tap a purchase: mark it used up (not in stock) or delete it */
+function buyActions(id){const e=biz.buys.find(x=>x.id===id);if(!e)return;
+  sheetOpen(`<div class="sh-addr">${e.qty.toLocaleString()} cards · ${money2(e.cost)}</div><div class="sh-sub">Bought ${shortDate(e.t)}${e.used?" · used up":""}</div>
+    <button class="primary" id="bUsed">${e.used?"Count these in stock again":"Mark as used up"}</button>
+    <div class="sh-sub" style="margin-top:8px">Used up = handed out before you tracked them. They still count in what you spent, not in cards in stock.</div>
+    <button class="primary" id="bDel" style="background:#dc2626;margin-top:12px">Delete purchase</button>`);
+  $("#bUsed").onclick=()=>{if(e.used)delete e.used;else e.used=true;persistBiz();sheetClose();renderStats();haptic();toast(e.used?"Marked used up":"Counted in stock again")};
+  $("#bDel").onclick=()=>{sheetClose();removeEntry("buys",id)}}
 async function removeEntry(kind,id){
   const list=biz[kind],i=list.findIndex(x=>x.id===id);if(i<0)return;const e=list[i];
   const what=kind==="buys"?`${e.qty.toLocaleString()} cards (${money2(e.cost)}) on ${shortDate(e.t)}`:`${money2(e.amount)} ${e.source||"job"}${e.t?" on "+shortDate(e.t):" (date unknown)"}`;
@@ -1756,7 +1768,7 @@ $("#fileIn").onchange=async e=>{
     const j=JSON.parse(await f.text());const list=Array.isArray(j)?j:j.houses;if(!Array.isArray(list))throw 0;
     // card purchases + other jobs (backups from v1.9+)
     let extra=0;const num=v=>{const n=+v;return isFinite(n)&&n>0?n:0};
-    [["buys",x=>({id:String(x.id),t:+x.t,qty:Math.round(num(x.qty)),cost:parseAmt(x.cost)})],["jobs",x=>({id:String(x.id),t:+x.t,amount:parseAmt(x.amount),source:String(x.source||"Other").slice(0,30),note:String(x.note||"").slice(0,60)})]].forEach(([k,clean])=>{
+    [["buys",x=>Object.assign({id:String(x.id),t:+x.t,qty:Math.round(num(x.qty)),cost:parseAmt(x.cost)},x.used?{used:true}:{})],["jobs",x=>({id:String(x.id),t:+x.t,amount:parseAmt(x.amount),source:String(x.source||"Other").slice(0,30),note:String(x.note||"").slice(0,60)})]].forEach(([k,clean])=>{
       if(!Array.isArray(j[k]))return;const have=new Set(biz[k].map(x=>x.id));
       for(const x of j[k]){if(!x||!x.id||have.has(String(x.id))||!(+x.t>0||(k==="jobs"&&+x.t===0)))continue;biz[k].push(clean(x));have.add(String(x.id));extra++}});
     if(extra)persistBiz();
@@ -1793,8 +1805,10 @@ if(houses.length>=10&&Date.now()-(settings.lastBackup||0)>14*864e5)setTimeout(()
 setInterval(()=>{checkNear();if(curTab==="list")renderList()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderAll()}});
 
+try{if(!localStorage.getItem(FIX1)){const b=biz.buys.find(x=>x.qty===250&&dayKey(x.t)==="2026-9-16");
+  if(b&&!b.used){b.used=true;persistBiz()}localStorage.setItem(FIX1,"1")}}catch(e){}
 /* ---------- offline + updates ---------- */
-const APP_VERSION="2.3.4";
+const APP_VERSION="2.3.5";
 $("#verLbl").textContent="Version "+APP_VERSION;
 let swReg=null;
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").then(r=>swReg=r).catch(()=>{});
