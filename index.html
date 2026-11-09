@@ -130,7 +130,7 @@ body.night .mapbtns{background:rgba(15,23,42,.82)}body.night .rbtn{color:#e2e8f0
 
 .search{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:0 12px;height:44px;margin-top:10px}
 .search input{border:0;outline:0;flex:1;background:none;height:100%}
-.filters{display:flex;gap:8px;overflow-x:auto;padding:10px 0 4px;scrollbar-width:none}
+.filters{display:flex;flex-wrap:wrap;gap:8px;padding:10px 0 4px}
 .filters::-webkit-scrollbar{display:none}
 .fchip{flex:none;padding:8px 14px;border-radius:20px;background:#fff;border:1px solid var(--line);font-size:14px;font-weight:600;color:var(--ink2);display:flex;align-items:center;gap:6px}
 .fchip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
@@ -1792,7 +1792,7 @@ setInterval(()=>{checkNear();if(curTab==="list")renderList()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderAll()}});
 
 /* ---------- offline + updates ---------- */
-const APP_VERSION="2.3.2";
+const APP_VERSION="2.3.3";
 $("#verLbl").textContent="Version "+APP_VERSION;
 let swReg=null;
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").then(r=>swReg=r).catch(()=>{});
