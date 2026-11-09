@@ -1524,7 +1524,7 @@ function renderStats(){
     <div class="mix">${mixTot?`<div style="width:${o.cardRev/mixTot*100}%;background:#3b82f6"></div><div style="width:${o.jobRev/mixTot*100}%;background:#2dd4bf"></div>`:""}</div>
     <div class="mixl"><span><i style="background:#3b82f6"></i>From cards ${money(o.cardRev)} · ${o.booked}</span><span><i style="background:#2dd4bf"></i>Other jobs ${money(o.jobRev)} · ${o.jobs}</span></div>
     <button class="addb" id="addJob">${SVG(IC.plus,18)}Add job (not from a card)</button>
-    ${jobs.length?`<div class="logl">${jobs.map(j=>`<button data-job="${j.id}"><div>${esc(j.source||"Job")}${j.note?" · "+esc(j.note):""}<small>${shortDate(j.t)}</small></div><em>${money2(j.amount)}</em></button>`).join("")}</div>`:""}
+    ${jobs.length?`<div class="logl">${jobs.map(j=>`<button data-job="${j.id}"><div>${esc(j.source||"Job")}${j.note?" · "+esc(j.note):""}<small>${j.t?shortDate(j.t):"Date unknown"}</small></div><em>${money2(j.amount)}</em></button>`).join("")}</div>`:""}
     <div class="sx-note">Card jobs come from houses you mark Booked on the map. Add other work (referrals, repeat customers) here so totals are complete.</div>
   </div>
 
@@ -1565,17 +1565,20 @@ function jobSheet(){
     <div class="amt-l">How much?</div>${amtBox("jAmt","")}
     <div class="amt-l">Where did it come from?</div><div class="chips" id="jSrc">${SOURCES.map(s=>`<button data-s="${s}" class="${s===src?"on":""}">${s}</button>`).join("")}</div>
     <div class="amt-l">Date</div>${dateBox("jDate")}
+    <div class="chips" style="margin-top:8px"><button id="jNoDate">Not sure of the date</button></div>
     <input class="addr-edit" id="jNote" placeholder="Note (optional), e.g. customer name" maxlength="60" style="margin-top:12px">
     <button class="primary" id="jSave">Save job</button>`);
   setTimeout(()=>{const i=$("#jAmt");if(i)i.focus()},300);
   $("#jSrc").querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{src=b.dataset.s;$("#jSrc").querySelectorAll("[data-s]").forEach(x=>x.classList.toggle("on",x===b))});
+  /* unknown date: saved as t=0, so it only counts in All Time stats */
+  let noDate=false;$("#jNoDate").onclick=()=>{noDate=!noDate;$("#jNoDate").classList.toggle("on",noDate);const d=$("#jDate");d.disabled=noDate;d.style.opacity=noDate?.4:1};
   $("#jSave").onclick=()=>{const amount=parseAmt($("#jAmt").value);if(!amount){toast("Enter the job amount");return}
-    biz.jobs.push({id:uid(),t:dateToT($("#jDate").value),amount,source:src,note:$("#jNote").value.trim()});persistBiz();sheetClose();renderStats();haptic();
-    toast(`Added ${money2(amount)} job`)};
+    biz.jobs.push({id:uid(),t:noDate?0:dateToT($("#jDate").value),amount,source:src,note:$("#jNote").value.trim()});persistBiz();sheetClose();renderStats();haptic();
+    toast(`Added ${money2(amount)} job${noDate?" · shows in All Time":""}`)};
 }
 async function removeEntry(kind,id){
   const list=biz[kind],i=list.findIndex(x=>x.id===id);if(i<0)return;const e=list[i];
-  const what=kind==="buys"?`${e.qty.toLocaleString()} cards (${money2(e.cost)}) on ${shortDate(e.t)}`:`${money2(e.amount)} ${e.source||"job"} on ${shortDate(e.t)}`;
+  const what=kind==="buys"?`${e.qty.toLocaleString()} cards (${money2(e.cost)}) on ${shortDate(e.t)}`:`${money2(e.amount)} ${e.source||"job"}${e.t?" on "+shortDate(e.t):" (date unknown)"}`;
   if(!await confirmDlg(kind==="buys"?"Delete this purchase?":"Delete this job?",what,"Delete",true))return;
   list.splice(i,1);persistBiz();renderStats();
   undoFn=()=>{biz[kind].splice(i,0,e);persistBiz();renderStats()};toast("Deleted","Undo");
@@ -1753,7 +1756,7 @@ $("#fileIn").onchange=async e=>{
     let extra=0;const num=v=>{const n=+v;return isFinite(n)&&n>0?n:0};
     [["buys",x=>({id:String(x.id),t:+x.t,qty:Math.round(num(x.qty)),cost:parseAmt(x.cost)})],["jobs",x=>({id:String(x.id),t:+x.t,amount:parseAmt(x.amount),source:String(x.source||"Other").slice(0,30),note:String(x.note||"").slice(0,60)})]].forEach(([k,clean])=>{
       if(!Array.isArray(j[k]))return;const have=new Set(biz[k].map(x=>x.id));
-      for(const x of j[k]){if(!x||!x.id||have.has(String(x.id))||!(+x.t>0))continue;biz[k].push(clean(x));have.add(String(x.id));extra++}});
+      for(const x of j[k]){if(!x||!x.id||have.has(String(x.id))||!(+x.t>0||(k==="jobs"&&+x.t===0)))continue;biz[k].push(clean(x));have.add(String(x.id));extra++}});
     if(extra)persistBiz();
     const ids=new Set(houses.map(h=>h.id));let added=0;
     for(const h of list){if(!h||typeof h.lat!=="number"||typeof h.lng!=="number"||ids.has(h.id))continue;
@@ -1789,7 +1792,7 @@ setInterval(()=>{checkNear();if(curTab==="list")renderList()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){renderAll()}});
 
 /* ---------- offline + updates ---------- */
-const APP_VERSION="2.3.1";
+const APP_VERSION="2.3.2";
 $("#verLbl").textContent="Version "+APP_VERSION;
 let swReg=null;
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").then(r=>swReg=r).catch(()=>{});
