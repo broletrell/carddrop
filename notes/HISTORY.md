@@ -1,6 +1,19 @@
 # Card Drop — HISTORY (permanent record, newest first)
 Never read at session start. grep it. Older full handoffs: `handoffs/`.
 
+## 2026-11-08 session 4 (cont.) — v2.2.1 → v2.3.1
+- v2.3.1 Every house gets a dot + number: green dots from Overture `addresses.pmtiles` (same release as buildings; OpenAddresses = Sacramento County, verified full on Roman Oak Way / River Ranch Way). Source `ova`, invisible layer `ova-pts`; `addrPts()` dedupes number|street, title-cases street (`tc`), adds OSM housenumber points not within 15 m of a same-number county point; `bucket()` 40 m grid lookup. Building centroids add a numberless dot only where no address point is inside/≤12 m. Base "housenum" layer removed (gray duplicates). Marked houses with no number take nearest address ≤15 m (saved + synced). Tap/multi-select pass n+s (`openNew(lat,lng,hint)`, pickAt props).
+- v2.3.0 Bug: own dot froze while partner's moved. Cause: `smoothFix` rejected `t<kf.t` using p.timestamp → one odd timestamp froze all later fixes; iOS also pauses watchPosition after lock/app switch. Fix: arrival time (Date.now) for filter, skip fixes stamped >20 s old, quick getCurrentPosition only if no fix yet, `restartGPS()` on visibilitychange + 15 s no-fix watchdog. Fake-GPS test in _test.html (override navigator.geolocation before document.write).
+- v2.2.9 Bug: own dot ~70 m behind walking under trees. Cause: Kalman R=acc², q=1 (v2.2.3 lowered from 1.5) with no iOS speed → tiny gain. Fix: R=(0.35·acc)², q=max(3, 2·speed), 2 fixes in a row outside error circle → snap k≥.85 + reset v. Node sim (acc 50, no speed): lag 28–38 m → ~7 m; jitter ~2 m; 150 m outlier 0.5 m.
+- v2.2.8 Bug: facing cone not showing. Causes: faint 90 px cone; readings dropped when webkitCompassAccuracy >45; permission failure silent. Fix: 150 px beam `#meBeam`, half-angle = compass accuracy (18–55°), -1 → wide + figure-8 toast; first-tap listener retries until granted/denied; denied → toast (Settings › Apps › Safari › Motion & Orientation Access). Confirmed working on owner's phone.
+- v2.2.7 Map rotation: two-finger twist (MapLibre inertia), touchPitch off, maxPitch 0; compass button `#btnCompass` (shows when bearing ≠ 0, tap → north); locate 1st tap = go to me, 2nd (centered, z≥16) = `headUp` (bearing follows `headSm`, 250 ms/3° throttle), 3rd = off + north; user drag/rotate ends it. Twist not testable in preview.
+- v2.2.6 Live location accuracy: share only fixes with raw acc ≤30 m (`GOOD_ACC`); `#gpsWarn` "Finding GPS… off by X ft" after 4 s rough; presence adds `sp`/`cr` (D1 ALTER TABLE presence ADD sp, cr); partner dot extrapolates along cr ≤6 s, redrawn 1 s; sync every 2–3 s when sharing/partner live (tick%5 ∈ {0,2}), else 5 s; resend moved >2 m / 10 s / turned >20°.
+- v2.2.5 Partner accuracy circle `.pacc` + "rough spot" label (acc >30 m). Field report: partner ~150 m off while side by side; D1 showed partner acc 3 m, owner not sharing → owner GPS rough (Precise toast only at >500 m).
+- v2.2.4 Partner live location: Settings → Live location (`#setShare`, `#setName`, `#peerRow`). `/sync` optional `dev` + `me{name,lat,lng,acc,hd}` / `off:1`; D1 table `presence` (team,dev PK, latest only, rows >12 h deleted); response `peers[{…,age}]`. Orange marker + name + cone; >45 s (`STALE`) → gray at last spot "Name · 2 min ago" (`peerAgo`), kept in `sync.peers` (survives no signal/reload); off/leave deletes at once. Green dots got OSM house numbers (`houseNumPts`, `numFor`). Gotcha: never set CSS `position` on a MapLibre marker element (marker drifts).
+- v2.2.3 House numbers on marked houses (`cd-done-num`, `hNum()`); left-off pill offset -27; Kalman predicts along GPS course; dot glide `glideMe`; compass-first smoothed cone, landscape correction, compass asked on first tap.
+- v2.2.2 Two-tab sync test (8795 = phone A, 8796 = phone B). Fixed: open house sheet overwrote partner edits on Done (`o0` snapshot → save only changed fields); partner-deleted open house → close + toast; `deleteHouse` splice(-1) guard; `#setBiz` not reset while focused.
+- v2.2.1 Near-live sync: poll 5 s while open (was 45 s). Friend-can't-see report: D1 had 0 teams (never started). Owner's real team 514fe5… (301 houses) + empty 112acc… (probably double Start; not deleted).
+
 ## 2026-11-08 (session 3) — v1.9.0 → v2.1.0
 - v2.1.0 Expected revenue: Estimates box shows $ range for next 7/14/30 d + total potential of all open cards. Two groups in `expected()`: cards-only (BASE_RATE 2%, PRIOR_CARDS 150) and talked-to (TALK_RATE 10%, TALK_PRIOR 30), each blended with own results via `grp()`. $ = clients × `avgTicket()` (own booked `h.amount` + `biz.jobs` amounts, else `settings.avgJob` default $150, "change" link).
 - v2.0.1 Bug: iPhone date input ran off screen in Add cards / Add job sheets → `.dinput` display:block, min-width:0, appearance:none, left-aligned. Not phone-verified.
@@ -20,7 +33,11 @@ Never read at session start. grep it. Older full handoffs: `handoffs/`.
 - Booked asks $ amount (`askAmount`). CARTO tiles need API key — don't use.
 
 ## Bug log
-- Open: none known. Not yet phone-verified: v1.9.2 SW caching, v2.0.1 date box.
+- Open: none known. Not phone-tested: v2.2.9 lag fix, v2.3.0 freeze fix, v2.2.7 two-finger twist, v2.3.1 address dots.
+- Fixed (session 4): stale sheet overwrote partner edits v2.2.2; wrong-house delete v2.2.2; facing cone missing v2.2.8; own dot lag v2.2.9; own dot freeze v2.3.0; houses without dot/number v2.3.1.
+- Ruled out (session 4): partner 150 m off = partner bug (partner acc 3 m; owner GPS was rough).
+- Ruled out (session 4): "all houses gone" (only 3 shown, all 20 hr old) = owner looking at his SECOND phone; each phone has its own storage until both join the Shared map. Main phone had all houses.
+- Earlier: none known. Not yet phone-verified: v1.9.2 SW caching, v2.0.1 date box.
 - Fixed: all-blue launch screen (TDZ) v1.7.1; date box overflow v2.0.1; slow start (network-first app page, double style load, uncached Overture) v1.9.2; jumpy/off GPS dot v1.9.2.
 - Ruled out: green dots at city zoom (no low-zoom building data; owner accepted zoom 14).
 
@@ -35,13 +52,3 @@ Never read at session start. grep it. Older full handoffs: `handoffs/`.
 
 ## 2026-11-08 v2.2.1
 - Shared map polls every 5 s while open (was 45 s) for near-live partner updates. Friend-can't-see-houses report: no team existed in D1.
-- 2026-11-08 v2.2.2: two-tab test passed; fixed stale-sheet overwrite of partner edits, delete-wrong-house on partner delete, biz field reset. Owner real team created (301 houses) + one empty team.
-- 2026-11-08 v2.2.3: house numbers on map, GPS prediction + glide, compass-first smoothed facing cone, compass asks on first tap.
-- 2026-11-08 v2.2.4: partner live location (presence table, faded last spot), house numbers on green dots from OSM.
-- 2026-11-08 v2.2.5: partner accuracy circle + rough-spot label; field report of 150 m offset (owner GPS likely rough).
-- 2026-11-08 v2.2.6: share only good GPS fixes, Finding-GPS pill, partner dot prediction (sp/cr), 2–3 s live sync.
-- 2026-11-08 v2.2.7: map rotation (two-finger twist), compass button, locate 2nd tap = map turns with you.
-- 2026-11-08 v2.2.8: bolder accuracy-sized facing beam, keep low-accuracy compass readings, permission retry + denied help.
-- 2026-11-08 v2.2.9: fixed own-dot lag under trees (Kalman retune + catch-up snap).
-- 2026-11-08 v2.3.0: own dot no longer freezes (arrival-time filter, GPS restart on return + 15 s watchdog).
-- 2026-11-08 v2.3.1: green dots from county address points (Overture addresses) — every house gets a dot + number.
